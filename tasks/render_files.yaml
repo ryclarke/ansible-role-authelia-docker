@@ -1,0 +1,93 @@
+---
+- name: Create service data directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop: "{{ authelia_directories }}"
+
+- name: Write Docker secret files
+  ansible.builtin.copy:
+    dest: "{{ authelia_root }}/secrets/{{ item.key }}"
+    content: "{{ hostvars[inventory_hostname][item.source_var] }}"
+    owner: root
+    group: "{{ authelia_hardening._defaults.group }}"
+    mode: "0640"
+  no_log: true
+  loop: "{{ authelia_secrets_files }}"
+  notify: reconcile
+
+- name: Build Authelia configuration
+  ansible.builtin.template:
+    src: configuration.yaml.j2
+    dest: "{{ authelia_root }}/data/authelia/configuration.yml"
+    owner: "{{ authelia_hardening.authelia.user }}"
+    group: "{{ authelia_hardening.authelia.group }}"
+    mode: "0600"
+  notify: restart authelia
+
+- name: Verify hardening applied to authelia
+  ansible.builtin.command: docker inspect authelia --format '{{ json.HostConfig.ReadonlyRootfs }}'
+  register: authelia_ro_check
+  changed_when: false
+  failed_when:
+    - authelia_ro_check.stdout | trim == 'false'
+    - authelia_hardening.read_only | bool
+
+- name: Configure Caddy build context
+  ansible.builtin.template:
+    src: caddy.Dockerfile.j2
+    dest: "{{ authelia_root }}/caddy/Dockerfile"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: reconcile
+  when: authelia_caddy_managed
+
+- name: Build Caddyfile
+  ansible.builtin.copy:
+    src: caddy/Caddyfile
+    dest: "{{ authelia_root }}/caddy/Caddyfile"
+    owner: "{{ authelia_hardening.caddy.user }}"
+    group: "{{ authelia_hardening.caddy.group }}"
+    mode: "0600"
+  notify: reload caddy
+  when: authelia_caddy_managed
+
+- name: Export Redis config
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ authelia_root }}/redis.conf"
+    owner: "{{ authelia_hardening.redis.user }}"
+    group: "{{ authelia_hardening.redis.group }}"
+    mode: "0600"
+  no_log: true
+  notify: reconcile
+  when:
+    - authelia_redis_enabled
+    - authelia_redis_managed
+    - authelia_redis_password
+
+- name: Build Compose environment (.env)
+  ansible.builtin.copy:
+    dest: "{{ authelia_root }}/.env"
+    content: |
+      {% for key, value in (authelia_compose_env | dictsort) -%}
+      {{ key }}={{ value }}
+      {% endfor %}
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  notify: reconcile
+
+- name: Build Compose file
+  ansible.builtin.template:
+    src: compose.yaml.j2
+    dest: "{{ authelia_root }}/compose.yaml"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: reconcile

@@ -1,0 +1,151 @@
+---
+name: {{ authelia_project_name | to_json }}
+
+secrets:
+{%- for secret in authelia_secrets_files | map(attribute='key') %}
+  {{ secret }}:
+    file: {{ authelia_root }}/secrets/{{ secret }}
+{%- endfor %}
+
+{%- macro hardened(service) -%}
+{%- set h = authelia_hardening.get(service, {}) %}
+    user: {{ (h['user'] ~ ':' ~ h['group']) | to_json }}
+{%- if h.get('read_only') %}
+    read_only: true
+{%- endif %}
+{%- if h.get('tmpfs') %}
+    tmpfs: {{ h['tmpfs'] | to_json }}
+{%- endif %}
+{%- if h.get('cap_drop_all') %}
+    cap_drop: [ALL]
+{%- set caps = h.get('cap_add', []) %}
+{%- if caps %}
+    cap_add: {{ caps | to_json }}
+{%- endif %}
+{%- endif %}
+{%- if h.get('no_new_privileges') %}
+    security_opt: [no-new-privileges:true]
+{%- endif %}
+{%- endmacro %}
+
+services:
+  authelia:
+    container_name: authelia
+    image: {{ authelia_images_authelia }}
+    restart: unless-stopped
+    networks: [authelia]
+    {%-  set deps = [] %}
+    {%- if authelia_ldap_managed %}{% set _ = deps.append('ldap') %}{% endif %}
+    {%- if authelia_storage_postgres_managed and authelia_storage_backend == 'postgres' %}{% set _ = deps.append('database') %}{% endif %}
+    {%- if authelia_redis_managed %}{% set _ = deps.append('redis') %}{% endif %}
+    depends_on: {{ deps | to_json }}
+{{ hardened('authelia') }}
+    volumes:
+      - {{ authelia_root }}/data/authelia:/config
+    ports:
+      - "127.0.0.1:{{ authelia_port }}:9091"
+    secrets:
+    {%- for secret in authelia_service_secrets.authelia | intersect(authelia_secrets_files | map(attribute='key')) %}
+      - {{ secret }}
+    {%- endfor %}
+    environment:
+      TZ: {{ authelia_timezone }}
+      AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET_FILE: /run/secrets/JWT_SECRET
+      AUTHELIA_SESSION_SECRET_FILE: /run/secrets/SESSION_SECRET
+      AUTHELIA_NOTIFIER_SMTP_PASSWORD_FILE: /run/secrets/SMTP_PASSWORD
+      AUTHELIA_AUTHENTICATION_BACKEND_LDAP_PASSWORD_FILE: /run/secrets/LDAP_PASSWORD
+      AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE: /run/secrets/STORAGE_ENCRYPTION_KEY
+{%- if authelia_storage_backend == 'postgres' %}
+      AUTHELIA_STORAGE_POSTGRES_PASSWORD_FILE: /run/secrets/STORAGE_PASSWORD
+{%- endif %}
+{%- if authelia_redis_enabled and authelia_redis_password %}
+      AUTHELIA_SESSION_REDIS_PASSWORD_FILE: /run/secrets/REDIS_PASSWORD
+{%- endif %}
+
+{%- if authelia_caddy_managed %}
+  caddy:
+    container_name: caddy
+    build:
+      context: {{ authelia_root }}/caddy
+    restart: unless-stopped
+    network_mode: host
+{{ hardened('caddy') }}
+    volumes:
+      - {{ authelia_root }}/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - {{ authelia_root }}/caddy/sites:/etc/caddy/sites:ro
+      - {{ authelia_root }}/data/caddy:/data
+    environment:
+      TZ: {{ authelia_timezone }}
+    {%- for key in authelia_caddy_env.keys() | list %}
+      {{ key }}: ${ {{- key -}} :?unset in .env}
+    {%- endfor %}
+{%- endif %}
+
+{%- if authelia_ldap_managed %}
+  ldap:
+    container_name: authelia_ldap
+    image: {{ authelia_images_lldap }}
+    restart: unless-stopped
+    networks: [authelia]
+{{ hardened('ldap') }}
+    volumes:
+      - {{ authelia_root }}/data/lldap:/data
+    ports:
+      - 127.0.0.1:17170:17170
+    secrets:
+    {%- for secret in authelia_service_secrets.ldap | intersect(authelia_secrets_files | map(attribute='key')) %}
+      - {{ secret }}
+    {%- endfor %}
+    environment:
+      TZ: {{ authelia_timezone }}
+      LLDAP_LDAP_BASE_DN: {{ authelia_ldap_base_dn | to_json }}
+      LLDAP_LDAP_USER_PASS_FILE: /run/secrets/LDAP_PASSWORD
+      LLDAP_JWT_SECRET_FILE: /run/secrets/LDAP_JWT_SECRET
+      LLDAP_KEY_SEED: ${LLDAP_KEY_SEED:?unset in .env}
+      LLDAP_KEY_FILE: ""
+{%- endif %}
+
+{%- if authelia_storage_backend is postgres and authelia_storage_postgres_managed %}
+  database:
+    container_name: authelia_db
+    image: {{ authelia_images_postgres }}
+    restart: unless-stopped
+    networks: [authelia]
+{{ hardened('database') }}
+    volumes:
+      - {{ authelia_root }}/data/postgres:/var/lib/postgresql/18/docker
+    secrets:
+    {%- for secret in authelia_service_secrets.postgres | intersect(authelia_secrets_files | map(attribute='key')) %}
+      - {{ secret }}
+    {%- endfor %}
+    environment:
+      TZ: {{ authelia_timezone }}
+      POSTGRES_USER: authelia
+      POSTGRES_PASSWORD_FILE: /run/secrets/STORAGE_PASSWORD
+    shm_size: 128mb
+{%- endif %}
+
+{%- if authelia_redis_enabled and authelia_redis_managed %}
+  redis:
+    container_name: authelia_redis
+    image: {{ authelia_images_redis }}
+    restart: unless-stopped
+    networks: [authelia]
+{{ hardened('redis') }}
+    volumes:
+      - {{ authelia_root }}/data/redis:/data
+{%- if authelia_redis_password %}
+      - {{ authelia_root }}/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    secrets:
+    {%- for secret in authelia_service_secrets.redis | intersect(authelia_secrets_files | map(attribute='key')) %}
+      - {{ secret }}
+    {%- endfor %}
+{%- endif %}
+    environment:
+      TZ: {{ authelia_timezone }}
+{%- endif %}
+
+networks:
+  authelia:
+    name: {{ authelia_network_name | to_json }}

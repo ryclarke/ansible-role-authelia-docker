@@ -1,0 +1,140 @@
+---
+- name: Assert required config vars are defined
+  ansible.builtin.assert:
+    that:
+      - authelia_domain | default('', true) | length > 0
+      - authelia_smtp_address | default('', true) | length > 0
+      - authelia_smtp_username | default('', true) | length > 0
+    fail_msg: "Required variables for enabled components are missing (check vault or vars)"
+
+- name: Assert required secret vars are defined
+  ansible.builtin.assert:
+    that:
+      - authelia_jwt_secret | default('', true) | length > 0
+      - authelia_session_secret | default('', true) | length > 0
+      - authelia_smtp_password | default('', true) | length > 0
+      - authelia_ldap_password | default('', true) | length > 0
+      - authelia_storage_encryption_key | default('', true) | length > 0
+      - authelia_oidc_jwks_private_key | default('', true) | length > 0
+      - authelia_ldap_connection.implementation | default('') == 'lldap' or (authelia_ldap_base_dn | default('', true) | length > 0)
+      - authelia_ldap_connection.implementation | default('') == 'lldap' or (authelia_ldap_user | default('', true) | length > 0)
+      - not authelia_ldap_managed or (authelia_ldap_jwt_secret | default('', true) | length > 0)
+      - not authelia_ldap_managed or (authelia_ldap_key_seed | default('', true) | length > 0)
+      - authelia_storage_backend != 'postgres' or (authelia_storage_postgres_password | default('', true) | length > 0)
+    fail_msg: "Required secrets for enabled components are missing (check vault or vars)"
+
+- name: Derive default LDAP base_dn and user for lldap from domain (if not explicitly set)
+  ansible.builtin.set_fact:
+    authelia_ldap_base_dn_final: >-
+      {{ authelia_ldap_base_dn | default('DC=' ~ (authelia_domain | regex_replace('\\.', ',DC=')), true) }}
+  when: authelia_ldap_base_dn | default('', true) | length > 0 or authelia_ldap_connection.implementation | default('') == 'lldap'
+
+- name: Derive default LDAP user for lldap from base_dn (if not explicitly set)
+  ansible.builtin.set_fact:
+    authelia_ldap_user_final: >-
+      {{ authelia_ldap_user | default('UID=admin,OU=people,' ~ authelia_ldap_base_dn_final, true) }}
+  when: authelia_ldap_user | default('', true) | length > 0 or authelia_ldap_connection.implementation | default('') == 'lldap'
+
+- name: Detect existing deployment
+  ansible.builtin.stat:
+    path: "{{ authelia_root }}/compose.yaml"
+  register: authelia_compose_state
+
+- name: Record first-run status
+  ansible.builtin.set_fact:
+    authelia_first_run: "{{ not authelia_compose_state.stat.exists }}"
+
+- name: Compute service data directories
+  ansible.builtin.set_fact:
+    authelia_directories:
+      - path: "{{ authelia_root }}"
+        owner: root
+        group: root
+        mode: "0755"
+      - path: "{{ authelia_root }}/secrets"
+        owner: root
+        group: "{{ authelia_hardening._defaults.group }}"
+        mode: "0750"
+      - path: "{{ authelia_root }}/data"
+        owner: root
+        group: root
+        mode: "0750"
+      - path: "{{ authelia_root }}/data/authelia"
+        owner: "{{ authelia_hardening.authelia.user }}"
+        group: "{{ authelia_hardening.authelia.group }}"
+        mode: "0750"
+
+- name: Add caddy directories (managed only)
+  ansible.builtin.set_fact:
+    authelia_directories: "{{ authelia_directories + [{
+          'path': authelia_root ~ '/caddy', 'mode': '0750',
+          'owner': 'root', 'group': 'root'
+        }, {
+          'path': authelia_root ~ '/data/caddy', 'mode': '0750',
+          'owner': authelia_hardening.caddy.user, 'group': authelia_hardening.caddy.group
+        }] }}"
+  when: authelia_caddy_managed
+
+- name: Add ldap directory (managed only)
+  ansible.builtin.set_fact:
+    authelia_directories: "{{ authelia_directories + [{
+          'path': authelia_root ~ '/data/lldap', 'mode': '0750',
+          'owner': authelia_hardening.ldap.user, 'group': authelia_hardening.ldap.group
+        }] }}"
+  when: authelia_ldap_managed
+
+- name: Add postgres directory (managed postgres backend)
+  ansible.builtin.set_fact:
+    authelia_directories: "{{ authelia_directories + [{
+          'path': authelia_root ~ '/data/postgres', 'mode': '0750',
+          'owner': authelia_hardening.postgres.user, 'group': authelia_hardening.postgres.group
+        }] }}"
+  when:
+    - authelia_storage_backend == 'postgres'
+    - authelia_storage_postgres_managed
+
+- name: Add redis directory (managed only)
+  ansible.builtin.set_fact:
+    authelia_directories: "{{ authelia_directories + [{
+          'path': authelia_root ~ '/data/redis', 'mode': '0750',
+          'owner': authelia_hardening.redis.user, 'group': authelia_hardening.redis.group
+        }] }}"
+  when: authelia_redis_managed
+
+- name: Compute required secrets files
+  ansible.builtin.set_fact:
+    authelia_secrets_files:
+      - key: JWT_SECRET
+        source_var: authelia_jwt_secret
+      - key: SESSION_SECRET
+        source_var: authelia_session_secret
+      - key: SMTP_PASSWORD
+        source_var: authelia_smtp_password
+      - key: LDAP_PASSWORD
+        source_var: authelia_ldap_password
+      - key: STORAGE_ENCRYPTION_KEY
+        source_var: authelia_storage_encryption_key
+
+- name: Append LLDAP internal secrets (managed only)
+  ansible.builtin.set_fact:
+    authelia_secrets_files: "{{ authelia_secrets_files + [{'key': 'LDAP_JWT_SECRET', 'source_var': 'authelia_ldap_jwt_secret'}] }}"
+  when: authelia_ldap_managed
+
+- name: Append Postgres storage password (postgres backend)
+  ansible.builtin.set_fact:
+    authelia_secrets_files: "{{ authelia_secrets_files + [{'key': 'STORAGE_PASSWORD', 'source_var': 'authelia_storage_postgres_password'}] }}"
+  when: authelia_storage_backend == 'postgres'
+
+- name: Append Redis password (optional)
+  ansible.builtin.set_fact:
+    authelia_secrets_files: "{{ authelia_secrets_files + [{'key': 'REDIS_PASSWORD', 'source_var': 'authelia_redis_password'}] }}"
+  when:
+    - authelia_redis_enabled
+    - authelia_redis_password
+
+- name: Merge Compose environment values
+  ansible.builtin.set_fact:
+    authelia_compose_env: >-
+      {{ (authelia_caddy_env if authelia_caddy_managed else {})
+        | combine({'LLDAP_KEY_SEED': authelia_ldap_key_seed} if authelia_ldap_managed else {})
+        | combine(authelia_env_extra | default({})) }}

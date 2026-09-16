@@ -1,0 +1,13 @@
+---
+galaxy_info:
+  author: ryclarke
+  description: Deploys a hardened Authelia SSO stack (authelia, lldap, postgres, redis, optional caddy) via Docker Compose
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+        - trixie
+
+dependencies: []

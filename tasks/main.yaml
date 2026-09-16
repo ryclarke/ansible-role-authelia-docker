@@ -1,0 +1,9 @@
+---
+- name: Prepare — validations, directory structure, secrets composition
+  ansible.builtin.import_tasks: prepare.yaml
+
+- name: Render — configuration, compose, environment files
+  ansible.builtin.import_tasks: render_files.yaml
+
+- name: Operate — stack reconciliation
+  ansible.builtin.import_tasks: deploy.yaml

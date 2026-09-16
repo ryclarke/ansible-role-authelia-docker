@@ -1,0 +1,114 @@
+# yamllint disable rule:comments-indentation
+---
+{%- if authelia_theme %}
+theme: {{ authelia_theme | to_json }}
+{%- endif %}
+default_2fa_method: {{ authelia_default_2fa }}
+server:
+  address: "tcp://:9091/"
+{%- if authelia_assets %}
+  asset_path: {{ authelia_assets | to_json }}
+{%- endif %}
+
+  # read_only rootfs: authelia's healthcheck writes state to /app/.healthcheck.env
+  disable_healthcheck: {{ authelia_hardening.authelia.read_only | default(false) | to_json }}
+
+  endpoints:
+    authz:
+      {{ authelia_authz_endpoints | to_nice_yaml(sort_keys=False) | indent(6) }}
+
+log:
+  level: {{ authelia_log_level }}
+
+totp:
+  disable: false
+  issuer: "auth.{{ authelia_domain }}"
+
+webauthn:
+  disable: false
+  enable_passkey_login: true
+
+identity_validation:
+  reset_password: {}
+
+ntp:
+  address: {{ authelia_ntp }}
+
+definitions:
+  network:
+    {{ authelia_network_definitions | to_nice_yaml(sort_keys=False) | indent(4) }}
+
+authentication_backend:
+  password_change:
+    disable: false
+  password_reset:
+    disable: false
+
+  refresh_interval: "5 minutes"
+
+  ldap:
+    implementation: {{ authelia_ldap_connection.implementation | to_json }}
+    address: {{ authelia_ldap_connection.address | to_json }}
+    users_filter: {{ authelia_ldap_connection.users_filter | to_json }}
+    groups_filter: {{ authelia_ldap_connection.groups_filter | to_json }}
+    base_dn: {{ authelia_ldap_base_dn | to_json }}
+    user: {{ authelia_ldap_user | to_json }}
+
+password_policy:
+  zxcvbn:
+    enabled: true
+
+access_control:
+  default_policy: {{ authelia_acl_default_policy | to_json }}
+
+  rules:
+    {{ authelia_acl_rules | to_nice_yaml(sort_keys=False) | indent(4) }}
+
+session:
+  cookies:
+    - domain: {{ authelia_domain | to_json }}
+      authelia_url: "https://auth.{{ authelia_domain }}"
+
+{%- if authelia_session_redis_enabled %}
+  redis:
+    host: {{ authelia_session_redis.host | to_json }}
+    port: {{ authelia_session_redis.port }}
+{%- endif %}
+
+storage:
+{%- if authelia_storage_backend is postgres %}
+  postgres:
+    address: {{ authelia_storage_postgres.address | to_json }}
+    database: {{ authelia_storage_postgres.database | to_json }}
+    username: {{ authelia_storage_postgres.username | to_json }}
+{%- else %}
+  local:
+    path: /config/db.sqlite3
+{%- endif %}
+
+notifier:
+  smtp:
+    {{ authelia_smtp | to_nice_yaml(sort_keys=False) | indent(4) }}
+
+identity_providers:
+  oidc:
+    jwks:
+      - key: {{ authelia_oidc_jwks_private_key | to_json }}
+
+    authorization_policies:
+      default:
+        default_policy: 'two_factor'
+        rules:
+          - policy: 'one_factor'
+            subject: 'group:services'
+            networks:
+              - 'internal'
+
+    cors:
+      allowed_origins:
+        - "https://{{ authelia_domain }}"
+
+      allowed_origins_from_client_redirect_uris: false
+
+    clients:
+      {{ authelia_oidc_clients | to_nice_yaml(sort_keys=False) | indent(6) }}

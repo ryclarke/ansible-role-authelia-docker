@@ -1,0 +1,6 @@
+---
+- name: Bring up Authelia stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ authelia_root }}"
+    state: present
+    build: always
