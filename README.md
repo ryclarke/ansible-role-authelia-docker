@@ -13,14 +13,18 @@ Designed for single-instance homelab or small-business deployments. Boring, prov
 ## Quick start
 
 ```yaml
-# requirements.yml
+# requirements.yaml
+collections:
+  - name: community.docker
+    version: ">=3.10.0"
+
 roles:
-  - src: https://github.com/ryclarke/ansible-role-authelia-docker
-    name: authelia_docker
+  - name: ryclarke.authelia
+    src: https://galaxy.ansible.com
 ```
 
 ```bash
-ansible-galaxy install -r requirements.yml
+ansible-galaxy install -r requirements.yaml
 ```
 
 Minimal playbook:
@@ -29,7 +33,7 @@ Minimal playbook:
 - hosts: auth
   become: true
   roles:
-    - authelia_docker
+    - ryclarke.authelia
 ```
 
 Core variables:
@@ -46,7 +50,7 @@ authelia_storage_encryption_key: "..."
 authelia_smtp_password: "..."
 authelia_ldap_password: "..."
 authelia_ldap_jwt_secret: "..." # managed lldap only
-authelia_ldap_key_seed: "..."   #
+authelia_ldap_key_seed: "..."   # managed lldap only
 ```
 > For bootstrapping a new implementation, see the official guide for [generating secrets](https://www.authelia.com/reference/guides/generating-secure-values/).
 
@@ -359,7 +363,7 @@ Production deployments should pin these to digests (`image@sha256:...`) — `lat
 | `authelia_user_attributes` | `{}` | Custom attribute definitions surfaced in OIDC claims and ACL rules ([docs](https://www.authelia.com/configuration/definitions/user-attributes/)) |
 | `authelia_authz_endpoints` | `{}` | Authz endpoint definitions for reverse-proxy integration |
 | `authelia_hardening` | see defaults | Per-service container hardening (uids, caps, read-only) |
-| `authelia_extra_compose_services` | `{}` | Extra service definitions merged into the compose services |
+| `authelia_compose_extra_services` | `{}` | Extra service definitions merged into the compose services |
 | `authelia_compose_extra_envs` | `{}` | Extra env keys merged into the compose `.env` |
 
 > Secrets (`authelia_jwt_secret`, `authelia_ldap_password`, …) are rendered as files under `secrets/` and exposed to containers via compose secret mounts.
