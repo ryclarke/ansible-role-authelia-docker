@@ -35,6 +35,4 @@ galaxy_info:
     - reverseproxy
     - security
 
-dependencies:
-  - name: community.docker
-    type: galaxy
+dependencies: []
