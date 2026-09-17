@@ -1,0 +1,117 @@
+---
+- name: Render Authelia fixture
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: false
+  vars_files:
+    - "{{ playbook_dir }}/../defaults/main.yaml"
+  vars:
+    fixture: minimal
+    fixture_file: "{{ playbook_dir }}/fixtures/{{ fixture }}.yaml"
+    authelia_role_path: "{{ playbook_dir | dirname }}"
+    authelia_render_owner: "{{ lookup('ansible.builtin.pipe', 'id -un') }}"
+    authelia_render_group: "{{ lookup('ansible.builtin.pipe', 'id -gn') }}"
+  tasks:
+    - name: Validate fixture selector
+      ansible.builtin.assert:
+        that:
+          - fixture is match('^[A-Za-z0-9_-]+$')
+          - >-
+            lookup('ansible.builtin.fileglob', playbook_dir ~ '/fixtures/*.yaml', wantlist=true)
+            | map('basename') | map('regex_replace', '\\.yaml$', '') | list is contains(fixture)
+        fail_msg: "Unknown or invalid fixture: {{ fixture }}"
+
+    - name: Load fixture variables
+      ansible.builtin.include_vars:
+        file: "{{ fixture_file }}"
+
+    - name: Use fixed workspace render root
+      ansible.builtin.set_fact:
+        authelia_root: "{{ playbook_dir }}/../tmp"
+
+    # - name: Render role files without deployment
+    #   ansible.builtin.include_tasks:
+    #     file: render_test.yaml
+
+    - name: Prepare test environment
+      ansible.builtin.import_tasks: "{{ authelia_role_path }}/tasks/prepare.yaml"
+
+    - name: Use current user ownership for disposable render output
+      ansible.builtin.set_fact:
+        authelia_directories: "{{ authelia_directories | map('combine', {'owner': authelia_render_owner, 'group': authelia_render_group}) | list }}"
+
+    - name: Render files for test
+      ansible.builtin.import_tasks: "{{ authelia_role_path }}/tasks/render_files.yaml"
+
+    - name: Check rendered files
+      when: not ansible_check_mode
+      block:
+        - name: Inspect rendered paths
+          ansible.builtin.stat:
+            path: "{{ authelia_root }}/{{ item }}"
+          loop: "{{ authelia_render_assertions.required_files }}"
+          register: authelia_rendered_paths
+
+        - name: Assert required files were rendered
+          ansible.builtin.assert:
+            that: item.stat.exists
+            fail_msg: "Expected render output is missing: {{ item.item }}"
+          loop: "{{ authelia_rendered_paths.results }}"
+
+        - name: Inspect rendered secret files
+          ansible.builtin.stat:
+            path: "{{ authelia_root }}/secrets/{{ item }}"
+          loop: "{{ authelia_render_assertions.required_secrets }}"
+          register: authelia_rendered_secrets
+
+        - name: Assert all required secret files were rendered
+          ansible.builtin.assert:
+            that: item.stat.exists
+            fail_msg: "Expected secret file is missing: {{ item.item }}"
+          loop: "{{ authelia_rendered_secrets.results }}"
+
+        - name: Read rendered configuration
+          ansible.builtin.set_fact:
+            authelia_rendered_configuration: "{{ lookup('ansible.builtin.file', authelia_root ~ '/data/authelia/configuration.yml') }}"
+            authelia_rendered_compose: "{{ lookup('ansible.builtin.file', authelia_root ~ '/compose.yml') }}"
+
+        - name: Assert expected configuration content
+          ansible.builtin.assert:
+            that: item in authelia_rendered_configuration
+            fail_msg: "Expected configuration content is missing: {{ item }}"
+          loop: "{{ authelia_render_assertions.configuration_contains }}"
+
+        - name: Assert unexpected configuration content is absent
+          ansible.builtin.assert:
+            that: item not in authelia_rendered_configuration
+            fail_msg: "Unexpected configuration content is present: {{ item }}"
+          loop: "{{ authelia_render_assertions.configuration_not_contains }}"
+
+        - name: Assert expected Compose content
+          ansible.builtin.assert:
+            that: item in authelia_rendered_compose
+            fail_msg: "Expected Compose content is missing: {{ item }}"
+          loop: "{{ authelia_render_assertions.compose_contains }}"
+
+        - name: Assert unexpected Compose content is absent
+          ansible.builtin.assert:
+            that: item not in authelia_rendered_compose
+            fail_msg: "Unexpected Compose content is present: {{ item }}"
+          loop: "{{ authelia_render_assertions.compose_not_contains }}"
+
+  handlers:
+    - name: Skip compose reconciliation during render tests
+      ansible.builtin.debug:
+        msg: Compose reconciliation is disabled for render tests
+      listen: reconcile
+
+    - name: Skip Authelia restart during render tests
+      ansible.builtin.debug:
+        msg: Authelia restart is disabled for render tests
+      listen: restart authelia
+
+    - name: Skip Caddy reload during render tests
+      ansible.builtin.debug:
+        msg: Caddy reload is disabled for render tests
+      listen: reload caddy

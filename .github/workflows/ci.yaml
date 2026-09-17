@@ -1,8 +1,10 @@
 ---
 name: CI
 on:
-  push: { branches: [main] }
   pull_request:
+  push:
+    branches:
+      - main
 
 jobs:
   lint:
@@ -14,4 +16,44 @@ jobs:
         run: pipx install ansible-lint
 
       - name: Run ansible-lint
-        run: ansible-lint
+        run: make lint
+
+  discover-fixtures:
+    name: Discover render fixtures
+    runs-on: ubuntu-latest
+    outputs:
+      fixtures: ${{ steps.fixtures.outputs.fixtures }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - id: fixtures
+        name: Build fixture matrix
+        shell: bash
+        run: |
+          fixtures=$(find tests/fixtures -maxdepth 1 -type f -name '*.yaml' -printf '%f\n' \
+            | sed 's/\.yaml$//' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          test "$fixtures" != '[]'
+          echo "fixtures=$fixtures" >> "$GITHUB_OUTPUT"
+
+  render-fixtures:
+    name: Render ${{ matrix.fixture }}
+    runs-on: ubuntu-latest
+    needs: [lint, discover-fixtures]
+    strategy:
+      fail-fast: false
+      matrix:
+        fixture: ${{ fromJSON(needs.discover-fixtures.outputs.fixtures) }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Ansible
+        run: pipx install ansible
+
+      - name: Install Ansible dependencies
+        run: ansible-galaxy collection install -r requirements.yaml
+
+      - name: Render files from fixture inputs
+        run: make test FIXTURE="${{ matrix.fixture }}"
+
+      - name: Validate rendered Compose definition and Authelia configuration
+        run: make validate FIXTURE="${{ matrix.fixture }}"

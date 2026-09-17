@@ -1,0 +1,76 @@
+---
+# Minimal deployment profile: authelia + lldap, sqlite storage, no redis, no caddy.
+
+authelia_project_name: test-authelia
+
+authelia_domain: example.com
+
+# at least one ACL rule is required for the rendered configuration to be valid
+authelia_acl_rules:
+  - policy: 'one_factor'
+    domain: '*.{{ authelia_domain }}'
+
+# SMTP simple path
+authelia_smtp_address: "submission://smtp.example.com:587"
+authelia_smtp_username: "auth@example.com"
+authelia_smtp_password: "ci-dummy-smtp-password"
+
+# Core secrets — dummy values, rendered to files then discarded
+authelia_jwt_secret: "ci-dummy-jwt-secret-0123456789abcdef"
+authelia_session_secret: "ci-dummy-session-secret-0123456789abcdef"
+authelia_storage_encryption_key: "ci-dummy-encryption-key-01234567"
+
+# Managed lldap secrets
+authelia_ldap_password: "ci-dummy-ldap-password"
+authelia_ldap_jwt_secret: "ci-dummy-lldap-jwt-secret-0123456"
+authelia_ldap_key_seed: "ci-dummy-key-seed-0123456789"
+
+## ---------------------------------- ##
+##     EXPECTED OUTPUT ASSERTIONS     ##
+## ---------------------------------- ##
+authelia_render_assertions:
+  required_files:
+    - compose.yml
+    - .env
+    - data/authelia/configuration.yml
+  required_secrets:
+    - JWT_SECRET
+    - SESSION_SECRET
+    - STORAGE_ENCRYPTION_KEY
+    - SMTP_PASSWORD
+    - LDAP_PASSWORD
+    - LDAP_JWT_SECRET
+  configuration_contains:
+    - "local:"
+    - "base_dn: DC=example,DC=com"
+    - "user: UID=admin,OU=people,DC=example,DC=com"
+  configuration_not_contains:
+    - "endpoints:"
+    - "authz:"
+    - "identity_providers:"
+    - "authorization_policies:"
+    - "claims_policies:"
+    - "clients:"
+    - "postgres:"
+    - "redis:"
+  compose_contains:
+    - "  authelia:"
+    - "  ldap:"
+    - "AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET_FILE:"
+    - "AUTHELIA_SESSION_SECRET_FILE:"
+    - "AUTHELIA_NOTIFIER_SMTP_PASSWORD_FILE:"
+    - "AUTHELIA_AUTHENTICATION_BACKEND_LDAP_PASSWORD_FILE:"
+    - "AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE:"
+    - "LLDAP_LDAP_BASE_DN:"
+    - "LLDAP_LDAP_USER_PASS_FILE:"
+    - "LLDAP_JWT_SECRET_FILE:"
+    - "LLDAP_KEY_SEED:"
+    - "LLDAP_KEY_FILE:"
+  compose_not_contains:
+    - "  caddy:"
+    - "  postgres:"
+    - "  redis:"
+    - "AUTHELIA_STORAGE_POSTGRES_PASSWORD_FILE:"
+    - "AUTHELIA_SESSION_REDIS_PASSWORD_FILE:"
+    - "POSTGRES_USER:"
+    - "POSTGRES_PASSWORD_FILE:"
