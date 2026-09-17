@@ -7,8 +7,8 @@ Designed for single-instance homelab or small-business deployments. Boring, prov
 ## Requirements
 
 - Ansible 2.15+
-- Debian-based target with Python 3
-- Docker (install it yourself, or pair this role with a `docker` role — [community.docker](https://galaxy.ansible.com/ui/repo/community/docker/) collection required for compose)
+- Linux-based target with Python 3
+- Docker (install it yourself, or pair this role with a `docker` role — [community.docker](https://docs.ansible.com/projects/ansible/latest/collections/community/docker/index.html) collection required for compose)
 
 ## Quick start
 
@@ -20,7 +20,6 @@ collections:
 
 roles:
   - name: ryclarke.authelia
-    src: https://galaxy.ansible.com
 ```
 
 ```bash
