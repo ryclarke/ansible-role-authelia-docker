@@ -1,14 +1,40 @@
 ---
 galaxy_info:
-  role_name: authelia_docker
-  author: ryclarke
-  description: Deploys a hardened Authelia SSO stack (authelia, lldap, postgres, redis, optional caddy) via Docker Compose
+  namespace: ryclarke
+  role_name: authelia
+  author: Ryan Clarke
+  description: Deploys a lean, hardened Authelia SSO stack (authelia and lldap, plus optional caddy, postgres, redis) via Docker Compose
   license: MIT
   min_ansible_version: "2.15"
+
+  # The role's only host requirements are Docker and Python 3 — everything else runs inside the deployed containers.
+  # Listed platforms are the ones with common Ansible/Docker bases; any comparable Linux distribution should work.
   platforms:
     - name: Debian
-      versions:
-        - bookworm
-        - trixie
+      versions: [all]
+    - name: Ubuntu
+      versions: [all]
+    - name: Fedora
+      versions: [all]
+    - name: EL
+      versions: [all]
+    - name: ArchLinux
+      versions: [all]
+    - name: Alpine
+      versions: [all]
 
-dependencies: []
+  galaxy_tags:
+    - authentication
+    - sso
+    - authelia
+    - ldap
+    - lldap
+    - caddy
+    - docker
+    - compose
+    - reverseproxy
+    - security
+
+dependencies:
+  - name: community.docker
+    type: galaxy
