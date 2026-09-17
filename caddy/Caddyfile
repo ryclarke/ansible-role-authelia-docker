@@ -1,8 +1,0 @@
-{
-	servers {
-		trusted_proxies static private_ranges
-		trusted_proxies_strict
-	}
-}
-
-#import /etc/caddy/sites/*.caddy

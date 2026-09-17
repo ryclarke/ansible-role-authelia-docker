@@ -40,7 +40,7 @@
 
 - name: Build Caddyfile
   ansible.builtin.copy:
-    src: caddy/Caddyfile
+    src: Caddyfile
     dest: "{{ authelia_root }}/caddy/Caddyfile"
     owner: "{{ authelia_hardening.caddy.user }}"
     group: "{{ authelia_hardening.caddy.group }}"
