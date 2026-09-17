@@ -140,5 +140,5 @@
           (authelia_caddy_env | default({}, true) | dict2items | selectattr('value', 'defined')
             | items2dict) if authelia_ldap_managed and (authelia_caddy_env | default({}, true)) is mapping else {},
           {'LLDAP_KEY_SEED': authelia_ldap_key_seed} if authelia_ldap_managed else {},
-          authelia_extra_compose_envs | default({}, true) if (authelia_extra_compose_envs | default({}, true)) is mapping else {}
+          authelia_compose_extra_envs | default({}, true) if (authelia_compose_extra_envs | default({}, true)) is mapping else {}
         ) }}

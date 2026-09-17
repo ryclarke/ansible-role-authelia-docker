@@ -128,8 +128,8 @@ authelia_redis:
   port: 6379
 
 # Extra services (and environment variables) to deploy into the Compose project.
-authelia_extra_compose_services: {}
-authelia_extra_compose_envs: {}
+authelia_compose_extra_services: {}
+authelia_compose_extra_envs: {}
 
 authelia_images_authelia: "docker.io/authelia/authelia:latest"
 authelia_images_caddy_builder: "caddy:2-builder"
