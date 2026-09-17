@@ -1,8 +1,8 @@
 FROM {{ authelia_images_caddy_builder }} AS builder
 RUN xcaddy build \
-{%- for plugin in authelia_caddy_plugins %}
+{% for plugin in authelia_caddy_plugins %}
     --with {{ plugin }} \
-{%- endfor %}
+{% endfor %}
     --output /caddy
 
 FROM {{ authelia_images_caddy_runtime }}

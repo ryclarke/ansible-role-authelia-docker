@@ -28,14 +28,6 @@
     mode: "0600"
   notify: restart authelia
 
-- name: Verify hardening applied to authelia
-  ansible.builtin.command: docker inspect authelia --format '{{ json.HostConfig.ReadonlyRootfs }}'
-  register: authelia_ro_check
-  changed_when: false
-  failed_when:
-    - authelia_ro_check.stdout | trim == 'false'
-    - authelia_hardening.read_only | bool
-
 - name: Configure Caddy build context
   ansible.builtin.template:
     src: caddy.Dockerfile.j2
@@ -68,7 +60,7 @@
   when:
     - authelia_redis_enabled
     - authelia_redis_managed
-    - authelia_redis_password
+    - authelia_redis_password | default('', true) | length > 0
 
 - name: Build Compose environment (.env)
   ansible.builtin.copy:

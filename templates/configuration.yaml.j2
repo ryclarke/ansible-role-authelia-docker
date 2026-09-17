@@ -1,14 +1,14 @@
 # yamllint disable rule:comments-indentation
 ---
-{%- if authelia_theme %}
+{% if authelia_theme %}
 theme: {{ authelia_theme | to_json }}
-{%- endif %}
+{% endif %}
 default_2fa_method: {{ authelia_default_2fa }}
 server:
   address: "tcp://:9091/"
-{%- if authelia_assets %}
+{% if authelia_assets %}
   asset_path: {{ authelia_assets | to_json }}
-{%- endif %}
+{% endif %}
 
   # read_only rootfs: authelia's healthcheck writes state to /app/.healthcheck.env
   disable_healthcheck: {{ authelia_hardening.authelia.read_only | default(false) | to_json }}
@@ -16,13 +16,12 @@ server:
   endpoints:
     authz:
       {{ authelia_authz_endpoints | to_nice_yaml(sort_keys=False) | indent(6) }}
-
 log:
   level: {{ authelia_log_level }}
 
 totp:
   disable: false
-  issuer: "auth.{{ authelia_domain }}"
+  issuer: "{{ authelia_subdomain }}.{{ authelia_domain }}"
 
 webauthn:
   disable: false
@@ -37,7 +36,6 @@ ntp:
 definitions:
   network:
     {{ authelia_network_definitions | to_nice_yaml(sort_keys=False) | indent(4) }}
-
 authentication_backend:
   password_change:
     disable: false
@@ -47,13 +45,7 @@ authentication_backend:
   refresh_interval: "5 minutes"
 
   ldap:
-    implementation: {{ authelia_ldap_connection.implementation | to_json }}
-    address: {{ authelia_ldap_connection.address | to_json }}
-    users_filter: {{ authelia_ldap_connection.users_filter | to_json }}
-    groups_filter: {{ authelia_ldap_connection.groups_filter | to_json }}
-    base_dn: {{ authelia_ldap_base_dn | to_json }}
-    user: {{ authelia_ldap_user | to_json }}
-
+    {{ authelia_ldap | to_nice_yaml(sort_keys=False) | indent(4) }}
 password_policy:
   zxcvbn:
     enabled: true
@@ -63,33 +55,27 @@ access_control:
 
   rules:
     {{ authelia_acl_rules | to_nice_yaml(sort_keys=False) | indent(4) }}
-
 session:
   cookies:
     - domain: {{ authelia_domain | to_json }}
-      authelia_url: "https://auth.{{ authelia_domain }}"
+      authelia_url: "https://{{ authelia_subdomain }}.{{ authelia_domain }}"
 
-{%- if authelia_session_redis_enabled %}
+{% if authelia_redis_enabled %}
   redis:
-    host: {{ authelia_session_redis.host | to_json }}
-    port: {{ authelia_session_redis.port }}
-{%- endif %}
+    {{ authelia_redis | to_nice_yaml(sort_keys=False) | indent(4) }}
+{% endif %}
 
 storage:
-{%- if authelia_storage_backend is postgres %}
+{% if authelia_storage_backend == 'postgres' %}
   postgres:
-    address: {{ authelia_storage_postgres.address | to_json }}
-    database: {{ authelia_storage_postgres.database | to_json }}
-    username: {{ authelia_storage_postgres.username | to_json }}
-{%- else %}
+    {{ authelia_storage_postgres | to_nice_yaml(sort_keys=False) | indent(4) }}
+{% else %}
   local:
     path: /config/db.sqlite3
-{%- endif %}
-
+{% endif %}
 notifier:
   smtp:
     {{ authelia_smtp | to_nice_yaml(sort_keys=False) | indent(4) }}
-
 identity_providers:
   oidc:
     jwks:

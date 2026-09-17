@@ -16,8 +16,8 @@
       - authelia_ldap_password | default('', true) | length > 0
       - authelia_storage_encryption_key | default('', true) | length > 0
       - authelia_oidc_jwks_private_key | default('', true) | length > 0
-      - authelia_ldap_connection.implementation | default('') == 'lldap' or (authelia_ldap_base_dn | default('', true) | length > 0)
-      - authelia_ldap_connection.implementation | default('') == 'lldap' or (authelia_ldap_user | default('', true) | length > 0)
+      - authelia_ldap.implementation | default('') == 'lldap' or (authelia_ldap_base_dn | default('', true) | length > 0)
+      - authelia_ldap.implementation | default('') == 'lldap' or (authelia_ldap_user | default('', true) | length > 0)
       - not authelia_ldap_managed or (authelia_ldap_jwt_secret | default('', true) | length > 0)
       - not authelia_ldap_managed or (authelia_ldap_key_seed | default('', true) | length > 0)
       - authelia_storage_backend != 'postgres' or (authelia_storage_postgres_password | default('', true) | length > 0)
@@ -26,14 +26,12 @@
 - name: Derive default LDAP base_dn and user for lldap from domain (if not explicitly set)
   ansible.builtin.set_fact:
     authelia_ldap_base_dn_final: >-
-      {{ authelia_ldap_base_dn | default('DC=' ~ (authelia_domain | regex_replace('\\.', ',DC=')), true) }}
-  when: authelia_ldap_base_dn | default('', true) | length > 0 or authelia_ldap_connection.implementation | default('') == 'lldap'
+      {{ authelia_ldap_base_dn | default('DC=' ~ (authelia_domain | replace('.', ',DC=')), true) }}
 
 - name: Derive default LDAP user for lldap from base_dn (if not explicitly set)
   ansible.builtin.set_fact:
     authelia_ldap_user_final: >-
       {{ authelia_ldap_user | default('UID=admin,OU=people,' ~ authelia_ldap_base_dn_final, true) }}
-  when: authelia_ldap_user | default('', true) | length > 0 or authelia_ldap_connection.implementation | default('') == 'lldap'
 
 - name: Detect existing deployment
   ansible.builtin.stat:
@@ -130,11 +128,14 @@
     authelia_secrets_files: "{{ authelia_secrets_files + [{'key': 'REDIS_PASSWORD', 'source_var': 'authelia_redis_password'}] }}"
   when:
     - authelia_redis_enabled
-    - authelia_redis_password
+    - authelia_redis_password | default('', true) | length > 0
 
 - name: Merge Compose environment values
   ansible.builtin.set_fact:
     authelia_compose_env: >-
-      {{ (authelia_caddy_env if authelia_caddy_managed else {})
-        | combine({'LLDAP_KEY_SEED': authelia_ldap_key_seed} if authelia_ldap_managed else {})
-        | combine(authelia_env_extra | default({})) }}
+      {{ {} | combine(
+          (authelia_caddy_env | default({}, true) | dict2items | selectattr('value', 'defined')
+            | items2dict) if authelia_ldap_managed and (authelia_caddy_env | default({}, true)) is mapping else {},
+          {'LLDAP_KEY_SEED': authelia_ldap_key_seed} if authelia_ldap_managed else {},
+          authelia_env_extra | default({}, true) if (authelia_env_extra | default({}, true)) is mapping else {}
+        ) }}

@@ -8,6 +8,7 @@ authelia_log_level: info
 authelia_env_extra: {}
 
 authelia_domain: ""  # required
+authelia_subdomain: auth
 authelia_timezone: "Etc/UTC"
 authelia_theme: ""
 authelia_assets: ""
@@ -55,30 +56,35 @@ authelia_caddy_managed: false  # deploy the local caddy service via docker compo
 authelia_caddy_plugins: []
 authelia_caddy_env: {}
 
-authelia_smtp_address: ""     # required
-authelia_smtp_username: ""    # required
-authelia_smtp_sender: "Authelia <{{ authelia_smtp_username }}>"
-authelia_smtp_identifier: "{{ authelia_domain }}"
+authelia_smtp_address: ""   # required
+authelia_smtp_username: ""  # required
+authelia_smtp:
+  address: "{{ authelia_smtp_address }}"
+  username: "{{ authelia_smtp_username }}"
+  sender: "Authelia <{{ authelia_smtp_username }}>"
+  identifier: "{{ authelia_domain }}"
 
 authelia_ldap_managed: true  # deploy the local ldap service via docker compose
 authelia_ldap_base_dn: ""    # base DN and user are derived from the domain for LLDAP — otherwise required
 authelia_ldap_user: ""
-authelia_ldap_connection:
+authelia_ldap:
   implementation: lldap
   address: ldap://authelia_ldap:3890
   users_filter: "(&(|({username_attribute}={input})({mail_attribute}={input}))(objectClass=person))"
   groups_filter: "(&(member={dn})(objectClass=groupOfNames))"
+  base_dn: "{{ authelia_ldap_base_dn_final }}"
+  user: "{{ authelia_ldap_user_final }}"
 
 authelia_storage_backend: local           # change to 'postgres' to enable PostgreSQL integration
 authelia_storage_postgres_managed: false  # deploy the local database service via docker compose
-authelia_storage_postgres_connection:
+authelia_storage_postgres:
   address: tcp://authelia_db:5432
   database: authelia
   username: authelia
 
 authelia_redis_enabled: false
 authelia_redis_managed: false  # deploy the local redis service via docker compose
-authelia_redis_connection:
+authelia_redis:
   host: authelia_redis
   port: 6379
 
@@ -98,21 +104,23 @@ authelia_service_secrets:
 authelia_hardening:
   _defaults: &std_hardening
     group: 0
-    read_only: true
     cap_drop_all: true
     no_new_privileges: true
   authelia:
     <<: *std_hardening # read_only requires healthcheck disabled in config
     user: 899
+    read_only: true
     tmpfs: [/tmp]
   caddy:
     <<: *std_hardening
     user: 898
+    read_only: true
     cap_add: [NET_BIND_SERVICE]
     tmpfs: [/tmp, /config]
   ldap:
     <<: *std_hardening
     user: 897
+    read_only: true
   postgres:
     <<: *std_hardening
     user: 896
