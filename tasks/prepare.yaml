@@ -3,8 +3,8 @@
   ansible.builtin.assert:
     that:
       - authelia_domain | default('', true) | length > 0
-      - authelia_smtp_address | default('', true) | length > 0
-      - authelia_smtp_username | default('', true) | length > 0
+      - not authelia_smtp_enabled or (authelia_smtp_address | default('', true) | length > 0)
+      - not authelia_smtp_enabled or (authelia_smtp_username | default('', true) | length > 0)
     fail_msg: "Required variables for enabled components are missing (check vault or vars)"
 
 - name: Assert required secret vars are defined
@@ -12,10 +12,10 @@
     that:
       - authelia_jwt_secret | default('', true) | length > 0
       - authelia_session_secret | default('', true) | length > 0
-      - authelia_smtp_password | default('', true) | length > 0
       - authelia_ldap_password | default('', true) | length > 0
       - authelia_storage_encryption_key | default('', true) | length > 0
       - authelia_oidc_jwks_private_key | default('', true) | length > 0
+      - not authelia_smtp_enabled or (authelia_smtp_password | default('', true) | length > 0)
       - authelia_ldap.implementation | default('') == 'lldap' or (authelia_ldap_base_dn | default('', true) | length > 0)
       - authelia_ldap.implementation | default('') == 'lldap' or (authelia_ldap_user | default('', true) | length > 0)
       - not authelia_ldap_managed or (authelia_ldap_jwt_secret | default('', true) | length > 0)
@@ -106,12 +106,15 @@
         source_var: authelia_jwt_secret
       - key: SESSION_SECRET
         source_var: authelia_session_secret
-      - key: SMTP_PASSWORD
-        source_var: authelia_smtp_password
       - key: LDAP_PASSWORD
         source_var: authelia_ldap_password
       - key: STORAGE_ENCRYPTION_KEY
         source_var: authelia_storage_encryption_key
+
+- name: Append SMTP internal secrets (if enabled)
+  ansible.builtin.set_fact:
+    authelia_secrets_files: "{{ authelia_secrets_files + [{'key': 'SMTP_PASSWORD', 'source_var': 'authelia_smtp_password'}] }}"
+  when: authelia_smtp_enabled
 
 - name: Append LLDAP internal secrets (managed only)
   ansible.builtin.set_fact:
@@ -137,5 +140,5 @@
           (authelia_caddy_env | default({}, true) | dict2items | selectattr('value', 'defined')
             | items2dict) if authelia_ldap_managed and (authelia_caddy_env | default({}, true)) is mapping else {},
           {'LLDAP_KEY_SEED': authelia_ldap_key_seed} if authelia_ldap_managed else {},
-          authelia_env_extra | default({}, true) if (authelia_env_extra | default({}, true)) is mapping else {}
+          authelia_extra_compose_envs | default({}, true) if (authelia_extra_compose_envs | default({}, true)) is mapping else {}
         ) }}

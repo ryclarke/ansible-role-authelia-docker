@@ -5,7 +5,9 @@ authelia_root: "/opt/{{ authelia_project_name }}"
 
 authelia_port: 9091
 authelia_log_level: info
-authelia_env_extra: {}
+
+authelia_extra_compose_services: {}
+authelia_extra_compose_envs: {}
 
 authelia_domain: ""  # required
 authelia_subdomain: auth
@@ -16,6 +18,7 @@ authelia_assets: ""
 authelia_ntp: udp://time.cloudflare.com:123
 authelia_default_2fa: totp
 
+authelia_configuration_template: configuration.yaml.j2
 authelia_acl_default_policy: deny
 authelia_acl_rules: []
 authelia_oidc_clients: []
@@ -39,10 +42,12 @@ authelia_authz_endpoints:
 # secrets — required:
 authelia_jwt_secret: ""
 authelia_session_secret: ""
-authelia_smtp_password: ""
 authelia_ldap_password: ""
 authelia_storage_encryption_key: ""
 authelia_oidc_jwks_private_key: ""
+
+# secret for SMTP notifications — conditionally required:
+authelia_smtp_password: ""
 
 # secrets for managed LDAP — conditionally required:
 authelia_ldap_jwt_secret: ""
@@ -56,8 +61,9 @@ authelia_caddy_managed: false  # deploy the local caddy service via docker compo
 authelia_caddy_plugins: []
 authelia_caddy_env: {}
 
-authelia_smtp_address: ""   # required
-authelia_smtp_username: ""  # required
+authelia_smtp_enabled: true
+authelia_smtp_address: ""   # required unless SMTP is disabled (not recommended)
+authelia_smtp_username: ""  #
 authelia_smtp:
   address: "{{ authelia_smtp_address }}"
   username: "{{ authelia_smtp_username }}"
@@ -79,7 +85,7 @@ authelia_storage_backend: local           # change to 'postgres' to enable Postg
 authelia_storage_postgres_managed: false  # deploy the local database service via docker compose
 authelia_storage_postgres:
   address: tcp://authelia_db:5432
-  database: authelia
+  database: "{{ authelia_storage_postgres.username }}"
   username: authelia
 
 authelia_redis_enabled: false

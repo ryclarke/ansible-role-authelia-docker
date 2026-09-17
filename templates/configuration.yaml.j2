@@ -74,8 +74,13 @@ storage:
     path: /config/db.sqlite3
 {% endif %}
 notifier:
+{% if authelia_smtp_enabled %}
   smtp:
     {{ authelia_smtp | to_nice_yaml(sort_keys=False) | indent(4) }}
+{% else %}
+  filesystem:
+    filename: /config/notification.txt
+{% endif %}
 identity_providers:
   oidc:
     jwks:

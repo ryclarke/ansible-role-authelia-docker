@@ -21,8 +21,8 @@
 
 - name: Build Authelia configuration
   ansible.builtin.template:
-    src: configuration.yaml.j2
-    dest: "{{ authelia_root }}/data/authelia/configuration.yml"
+    src: "{{ authelia_configuration_template }}"
+    dest: "{{ authelia_root }}/data/authelia/configuration.yaml"
     owner: "{{ authelia_hardening.authelia.user }}"
     group: "{{ authelia_hardening.authelia.group }}"
     mode: "0600"

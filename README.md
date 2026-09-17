@@ -112,7 +112,7 @@ For non-lldap implementations (Active Directory, freeIPA, etc.), both are requir
 | `authelia_network_definitions` | `{}` | Named CIDR lists reused in ACL rules |
 | `authelia_authz_endpoints` | forward-auth | Authz endpoint definitions for reverse-proxy integration |
 | `authelia_hardening` | see defaults | Per-service container hardening (uids, caps, read-only) |
-| `authelia_env_extra` | `{}` | Extra env keys merged into the compose `.env` |
+| `authelia_extra_compose_envs` | `{}` | Extra env keys merged into the compose `.env` |
 
 Secrets (`authelia_jwt_secret`, `authelia_ldap_password`, …) are rendered as files under `secrets/` and exposed to containers via compose secret mounts.
 

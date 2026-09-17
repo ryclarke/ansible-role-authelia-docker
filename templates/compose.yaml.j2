@@ -143,6 +143,11 @@ services:
     environment:
       TZ: {{ authelia_timezone }}
 {% endif %}
+{% for name, svc in authelia_compose_extra_services.items() %}
+
+  {{ name }}:
+    {{ svc | to_nice_yaml(indent=2) }}
+{% endfor %}
 
 networks:
   authelia:
