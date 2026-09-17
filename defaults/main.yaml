@@ -16,7 +16,7 @@ authelia_ntp: udp://time.cloudflare.com:123
 authelia_default_2fa: totp
 
 # Replace the entire default configuration template (ADVANCED)
-authelia_configuration_template: configuration.yaml.j2
+authelia_configuration_template: configuration.yml.j2
 
 # --- Usage Configuration (Application Logic) ---
 # These blocks are MERGED or APPENDED to. Safe to extend incrementally.

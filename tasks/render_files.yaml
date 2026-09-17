@@ -22,7 +22,7 @@
 - name: Build Authelia configuration
   ansible.builtin.template:
     src: "{{ authelia_configuration_template }}"
-    dest: "{{ authelia_root }}/data/authelia/configuration.yaml"
+    dest: "{{ authelia_root }}/data/authelia/configuration.yml"
     owner: "{{ authelia_hardening.authelia.user }}"
     group: "{{ authelia_hardening.authelia.group }}"
     mode: "0600"
@@ -77,8 +77,8 @@
 
 - name: Build Compose file
   ansible.builtin.template:
-    src: compose.yaml.j2
-    dest: "{{ authelia_root }}/compose.yaml"
+    src: compose.yml.j2
+    dest: "{{ authelia_root }}/compose.yml"
     owner: root
     group: root
     mode: "0600"
