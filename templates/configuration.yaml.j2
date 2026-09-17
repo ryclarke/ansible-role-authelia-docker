@@ -13,9 +13,11 @@ server:
   # read_only rootfs: authelia's healthcheck writes state to /app/.healthcheck.env
   disable_healthcheck: {{ authelia_hardening.authelia.read_only | default(false) | to_json }}
 
+{% if authelia_authz_endpoints | length > 0 %}
   endpoints:
     authz:
       {{ authelia_authz_endpoints | to_nice_yaml(sort_keys=False) | indent(6) }}
+{% endif %}
 log:
   level: {{ authelia_log_level }}
 
@@ -29,6 +31,13 @@ webauthn:
 
 identity_validation:
   reset_password: {}
+
+regulation:
+  modes:
+    - 'ip'
+  max_retries: 3
+  find_time: '2m'
+  ban_time: '5m'
 
 ntp:
   address: {{ authelia_ntp }}

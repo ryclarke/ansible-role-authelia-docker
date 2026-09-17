@@ -3,8 +3,8 @@
   ansible.builtin.assert:
     that:
       - authelia_domain | default('', true) | length > 0
-      - not authelia_smtp_enabled or (authelia_smtp_address | default('', true) | length > 0)
-      - not authelia_smtp_enabled or (authelia_smtp_username | default('', true) | length > 0)
+      - not authelia_smtp_enabled or (authelia_smtp_address | default('', true) | length > 0) or (authelia_smtp.address | default('', true) | length > 0)
+      - not authelia_smtp_enabled or (authelia_smtp_username | default('', true) | length > 0) or (authelia_smtp.username | default('', true) | length > 0)
     fail_msg: "Required variables for enabled components are missing (check vault or vars)"
 
 - name: Assert required secret vars are defined

@@ -6,9 +6,6 @@ authelia_root: "/opt/{{ authelia_project_name }}"
 authelia_port: 9091
 authelia_log_level: info
 
-authelia_extra_compose_services: {}
-authelia_extra_compose_envs: {}
-
 authelia_domain: ""  # required
 authelia_subdomain: auth
 authelia_timezone: "Etc/UTC"
@@ -18,26 +15,33 @@ authelia_assets: ""
 authelia_ntp: udp://time.cloudflare.com:123
 authelia_default_2fa: totp
 
+# Replace the entire default configuration template (ADVANCED)
 authelia_configuration_template: configuration.yaml.j2
+
+# --- Usage Configuration (Application Logic) ---
+# These blocks are MERGED or APPENDED to. Safe to extend incrementally.
+# Used for: ACL rules, OIDC clients, AuthZ endpoints, Network and User Attributes definitions.
+
+# https://www.authelia.com/configuration/security/access-control/
+# https://www.authelia.com/reference/guides/rule-operators/
 authelia_acl_default_policy: deny
 authelia_acl_rules: []
+
+# https://www.authelia.com/configuration/identity-providers/openid-connect/clients/
 authelia_oidc_clients: []
+
+# https://www.authelia.com/configuration/miscellaneous/server-endpoints-authz/
+# https://www.authelia.com/reference/guides/proxy-authorization/
+authelia_authz_endpoints: {}
+
+# https://www.authelia.com/configuration/definitions/network/
 authelia_network_definitions: {}
 
-authelia_authz_endpoints:
-  forward-auth:
-    implementation: ForwardAuth
-    authn_strategies:
-      - name: HeaderAuthorization
-        schemes:
-          - Basic
-        scheme_basic_cache_lifespan: 0
-      - name: CookieSession
+# https://www.authelia.com/configuration/definitions/user-attributes/
+authelia_user_attributes: {}
 
-  forward-auth-nobasic:
-    implementation: ForwardAuth
-    authn_strategies:
-      - name: CookieSession
+# Generate new secrets using this guide for initial bootstrapping:
+# https://www.authelia.com/reference/guides/generating-secure-values/
 
 # secrets — required:
 authelia_jwt_secret: ""
@@ -61,19 +65,38 @@ authelia_caddy_managed: false  # deploy the local caddy service via docker compo
 authelia_caddy_plugins: []
 authelia_caddy_env: {}
 
+# --- Integration Blocks (Infrastructure Topology) ---
+# WARNING: Providing a custom block REPLACES the default entirely.
+# Do not merge; these define the connection topology.
+# Only customize these if you are switching providers (e.g., external SMTP, custom LDAP).
+# For simple managed cases, leave these at defaults.
+
+# WARNING: Disabling SMTP prevents password resets and account recovery emails from reaching users.
 authelia_smtp_enabled: true
-authelia_smtp_address: ""   # required unless SMTP is disabled (not recommended)
+authelia_smtp_address: ""   # required unless disabled
 authelia_smtp_username: ""  #
 authelia_smtp:
+  # Transport Configuration block: Replaced entirely if overridden.
+  # Used for: Custom TLS settings, custom sender addresses, or other
+  # configuration settings not covered by defaults.
+  #
+  # https://www.authelia.com/configuration/notifications/smtp/
   address: "{{ authelia_smtp_address }}"
   username: "{{ authelia_smtp_username }}"
   sender: "Authelia <{{ authelia_smtp_username }}>"
   identifier: "{{ authelia_domain }}"
 
-authelia_ldap_managed: true  # deploy the local ldap service via docker compose
-authelia_ldap_base_dn: ""    # base DN and user are derived from the domain for LLDAP — otherwise required
-authelia_ldap_user: ""
+# https://www.authelia.com/reference/integrations/ldap-integrations/
+authelia_ldap_managed: true
+authelia_ldap_base_dn: ""  # required for non-lldap implementations
+authelia_ldap_user: ""     #
 authelia_ldap:
+  # Implementation block: Replaced entirely if overridden.
+  # Used for: Implementation type, Address, Filters, Base DN, Bind User.
+  # Note: 'base_dn' and 'user' in this block are overridden by derived facts
+  # if using lldap and no explicit values are set.
+  #
+  # https://www.authelia.com/configuration/first-factor/ldap/
   implementation: lldap
   address: ldap://authelia_ldap:3890
   users_filter: "(&(|({username_attribute}={input})({mail_attribute}={input}))(objectClass=person))"
@@ -81,18 +104,32 @@ authelia_ldap:
   base_dn: "{{ authelia_ldap_base_dn_final }}"
   user: "{{ authelia_ldap_user_final }}"
 
-authelia_storage_backend: local           # change to 'postgres' to enable PostgreSQL integration
-authelia_storage_postgres_managed: false  # deploy the local database service via docker compose
+# https://www.authelia.com/reference/integrations/database-integrations/
+authelia_storage_backend: local  # Options: 'local' (SQLite), 'postgres'
+authelia_storage_postgres_managed: false
 authelia_storage_postgres:
+  # Implementation block: Replaced entirely if overridden.
+  # Used for: Connection string, Database name, Username, TLS settings.
+  #
+  # https://www.authelia.com/configuration/storage/postgres/
   address: tcp://authelia_db:5432
   database: "{{ authelia_storage_postgres.username }}"
   username: authelia
 
+# https://www.authelia.com/reference/integrations/cache-integrations/
 authelia_redis_enabled: false
-authelia_redis_managed: false  # deploy the local redis service via docker compose
+authelia_redis_managed: false
 authelia_redis:
+  # Implementation block: Replaced entirely if overridden.
+  # Used for: Host, Port, TLS settings.
+  #
+  # https://www.authelia.com/configuration/session/redis/
   host: authelia_redis
   port: 6379
+
+# Extra services (and environment variables) to deploy into the Compose project.
+authelia_extra_compose_services: {}
+authelia_extra_compose_envs: {}
 
 authelia_images_authelia: "docker.io/authelia/authelia:latest"
 authelia_images_caddy_builder: "caddy:2-builder"

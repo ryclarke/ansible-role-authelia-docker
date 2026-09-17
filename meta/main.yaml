@@ -1,5 +1,6 @@
 ---
 galaxy_info:
+  role_name: authelia_docker
   author: ryclarke
   description: Deploys a hardened Authelia SSO stack (authelia, lldap, postgres, redis, optional caddy) via Docker Compose
   license: MIT
