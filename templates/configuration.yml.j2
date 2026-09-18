@@ -10,9 +10,6 @@ server:
   asset_path: {{ authelia_assets | to_json }}
 {% endif %}
 
-  # read_only rootfs: authelia's healthcheck writes state to /app/.healthcheck.env
-  disable_healthcheck: {{ authelia_hardening.authelia.read_only | default(false) | to_json }}
-
 {% if authelia_authz_endpoints | length > 0 %}
   endpoints:
     authz:
@@ -76,8 +73,8 @@ session:
   cookies:
     - domain: {{ authelia_domain | to_json }}
       authelia_url: "https://{{ authelia_subdomain }}.{{ authelia_domain }}"
-
 {% if authelia_redis_enabled %}
+
   redis:
     {{ authelia_redis | to_nice_yaml(sort_keys=False) | indent(4) }}
 {% endif %}
@@ -89,6 +86,7 @@ storage:
 {% else %}
   local:
     path: /config/db.sqlite3
+
 {% endif %}
 notifier:
 {% if authelia_smtp_enabled %}
@@ -97,9 +95,9 @@ notifier:
 {% else %}
   filesystem:
     filename: /config/notification.txt
+
 {% endif %}
 {% if authelia_oidc_clients | length > 0 %}
-
 identity_providers:
   oidc:
     jwks:

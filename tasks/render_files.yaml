@@ -36,6 +36,14 @@
     mode: "{{ authelia_render_config_mode | default('0600') }}"
   notify: restart authelia
 
+- name: Initialize Authelia healthcheck file
+  ansible.builtin.file:
+    path: "{{ authelia_root }}/data/authelia/healthcheck.env"
+    state: touch
+    owner: "{{ authelia_render_owner | default(authelia_hardening.authelia.user) }}"
+    group: "{{ authelia_render_group | default(authelia_hardening.authelia.group) }}"
+    mode: "{{ authelia_render_config_mode | default('0644') }}"
+
 - name: Configure Caddy build context
   ansible.builtin.template:
     src: "{{ authelia_role_source_path }}/templates/caddy.Dockerfile.j2"

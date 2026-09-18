@@ -1,4 +1,5 @@
 # ansible-role-authelia-docker
+[![CI](https://github.com/ryclarke/ansible-role-authelia-docker/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/ryclarke/ansible-role-authelia-docker/actions/workflows/ci.yaml)
 
 An opinionated Ansible role that deploys a lean, hardened [Authelia](https://www.authelia.com) SSO stack via Docker Compose: **Authelia + lldap** (Lightweight LDAP), with an optional **Caddy** reverse proxy that builds a custom image with the DNS plugins of your choice, and optional **PostgreSQL + Redis** services.
 
@@ -384,14 +385,19 @@ ansible-galaxy collection install -r requirements.yaml
 Run the default fixture, select another fixture by basename, or exercise the isolated Ansible check-mode path:
 
 ```bash
+# run ansible-lint
 make lint
 
-make test
-make test-{fixture}
-
+# run the playbook against fixture config with --check
 make check
 make check-{fixture}
 
+# run the playbook against fixture config
+make test
+make test-{fixture}
+
+# validate locally rendered output
+# requires Docker running locally and the output of `make test`
 make validate
 make validate-{fixture}
 ```

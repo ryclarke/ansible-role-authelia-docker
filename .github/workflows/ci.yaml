@@ -1,5 +1,5 @@
 ---
-name: CI
+name: CI Linting and Tests
 on:
   pull_request:
   push:
@@ -20,7 +20,7 @@ jobs:
 
   discover-fixtures:
     name: Discover render fixtures
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     outputs:
       fixtures: ${{ steps.fixtures.outputs.fixtures }}
     steps:

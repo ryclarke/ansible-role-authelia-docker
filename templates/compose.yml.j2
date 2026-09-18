@@ -40,6 +40,7 @@ services:
 {{ hardened('authelia') }}
     volumes:
       - {{ authelia_root }}/data/authelia:/config
+      - {{ authelia_root }}/data/authelia/healthcheck.env:/app/.healthcheck.env
     ports:
       - "127.0.0.1:{{ authelia_port }}:9091"
     secrets:
