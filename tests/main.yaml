@@ -12,6 +12,7 @@
     authelia_role_path: "{{ playbook_dir | dirname }}"
     authelia_render_owner: "{{ lookup('ansible.builtin.pipe', 'id -un') }}"
     authelia_render_group: "{{ lookup('ansible.builtin.pipe', 'id -gn') }}"
+    authelia_render_config_mode: "0644"
   tasks:
     - name: Validate fixture selector
       ansible.builtin.assert:
@@ -30,16 +31,17 @@
       ansible.builtin.set_fact:
         authelia_root: "{{ playbook_dir }}/../tmp"
 
-    # - name: Render role files without deployment
-    #   ansible.builtin.include_tasks:
-    #     file: render_test.yaml
-
     - name: Prepare test environment
       ansible.builtin.import_tasks: "{{ authelia_role_path }}/tasks/prepare.yaml"
 
     - name: Use current user ownership for disposable render output
       ansible.builtin.set_fact:
-        authelia_directories: "{{ authelia_directories | map('combine', {'owner': authelia_render_owner, 'group': authelia_render_group}) | list }}"
+        authelia_directories: >-
+          {{ authelia_directories | map('combine', {
+            'owner': authelia_render_owner,
+            'group': authelia_render_group,
+            'mode': '0755'
+          }) | list }}
 
     - name: Render files for test
       ansible.builtin.import_tasks: "{{ authelia_role_path }}/tasks/render_files.yaml"

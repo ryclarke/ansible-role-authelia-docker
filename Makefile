@@ -22,7 +22,7 @@ test:
 validate-%:
 	$(MAKE) --no-print-directory validate FIXTURE="$*"
 validate:
-	docker compose --project-directory "$(ROOT)" config
+	docker compose --project-directory "$(ROOT)" config -q
 	docker compose --project-directory "$(ROOT)" run --rm authelia \
 		authelia config validate --config /config/configuration.yml
 

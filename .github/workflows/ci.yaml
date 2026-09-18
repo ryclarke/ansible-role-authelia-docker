@@ -53,7 +53,7 @@ jobs:
         run: ansible-galaxy collection install -r requirements.yaml
 
       - name: Render files from fixture inputs
-        run: make test FIXTURE="${{ matrix.fixture }}"
+        run: make "test-${{ matrix.fixture }}"
 
       - name: Validate rendered Compose definition and Authelia configuration
-        run: make validate FIXTURE="${{ matrix.fixture }}"
+        run: make "validate-${{ matrix.fixture }}"
