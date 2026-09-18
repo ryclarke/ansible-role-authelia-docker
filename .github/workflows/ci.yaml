@@ -43,6 +43,8 @@ jobs:
       fail-fast: false
       matrix:
         fixture: ${{ fromJSON(needs.discover-fixtures.outputs.fixtures) }}
+    env:
+      CNT_BIN: docker
     steps:
       - uses: actions/checkout@v7
 

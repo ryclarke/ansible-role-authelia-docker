@@ -39,8 +39,8 @@ services:
     depends_on: {{ deps | to_json }}
 {{ hardened('authelia') }}
     volumes:
-      - {{ authelia_root }}/data/authelia:/config
-      - {{ authelia_root }}/data/authelia/healthcheck.env:/app/.healthcheck.env
+      - {{ authelia_root }}/data/authelia:/config:Z
+      - {{ authelia_root }}/data/authelia/healthcheck.env:/app/.healthcheck.env:z
     ports:
       - "127.0.0.1:{{ authelia_port }}:9091"
     secrets:
@@ -72,9 +72,9 @@ services:
     network_mode: host
 {{ hardened('caddy') }}
     volumes:
-      - {{ authelia_root }}/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - {{ authelia_root }}/caddy/sites:/etc/caddy/sites:ro
-      - {{ authelia_root }}/data/caddy:/data
+      - {{ authelia_root }}/caddy/Caddyfile:/etc/caddy/Caddyfile:z,ro
+      - {{ authelia_root }}/caddy/sites:/etc/caddy/sites:z,ro
+      - {{ authelia_root }}/data/caddy:/data:Z
     environment:
       TZ: "{{ authelia_timezone }}"
 {% for key in authelia_caddy_env.keys() | list %}
@@ -90,7 +90,7 @@ services:
     networks: [authelia]
 {{ hardened('ldap') }}
     volumes:
-      - {{ authelia_root }}/data/lldap:/data
+      - {{ authelia_root }}/data/lldap:/data:Z
     ports:
       - 127.0.0.1:17170:17170
     secrets:
@@ -114,7 +114,7 @@ services:
     networks: [authelia]
 {{ hardened('postgres') }}
     volumes:
-      - {{ authelia_root }}/data/postgres:/var/lib/postgresql/18/docker
+      - {{ authelia_root }}/data/postgres:/var/lib/postgresql/18/docker:Z
     secrets:
 {% for secret in authelia_service_secrets.postgres | intersect(authelia_secrets_files | map(attribute='key')) %}
       - {{ secret }}
@@ -134,9 +134,9 @@ services:
     networks: [authelia]
 {{ hardened('redis') }}
     volumes:
-      - {{ authelia_root }}/data/redis:/data
+      - {{ authelia_root }}/data/redis:/data:Z
 {% if authelia_redis_password %}
-      - {{ authelia_root }}/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - {{ authelia_root }}/redis.conf:/usr/local/etc/redis/redis.conf:Z,ro
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     secrets:
 {% for secret in authelia_service_secrets.redis | intersect(authelia_secrets_files | map(attribute='key')) %}

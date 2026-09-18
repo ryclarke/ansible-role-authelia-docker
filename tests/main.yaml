@@ -46,6 +46,14 @@
     - name: Render files for test
       ansible.builtin.import_tasks: "{{ authelia_role_path }}/tasks/render_files.yaml"
 
+    - name: Resolve SELinux labels for file secrets
+      # respects the container runtime override from the Makefile.
+      ansible.builtin.command: "{{ lookup('env', 'CNT_BIN')
+        | default('docker', true) }} compose run -v '{{ authelia_root }}/secrets:/run/secrets:z,ro' --rm authelia true"
+      args:
+        chdir: "{{ authelia_root }}"
+      changed_when: false
+
     - name: Check rendered files
       when: not ansible_check_mode
       block:
