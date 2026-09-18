@@ -1,0 +1,175 @@
+---
+# Minimal deployment profile: authelia + lldap, sqlite storage, no redis, no caddy.
+
+authelia_project_name: test-authelia
+
+authelia_domain: example.com
+
+# at least one ACL rule is required for the rendered configuration to be valid
+authelia_acl_rules:
+  - policy: 'one_factor'
+    domain: '*.{{ authelia_domain }}'
+
+# SMTP simple path
+authelia_smtp_address: "submission://smtp.example.com:587"
+authelia_smtp_username: "auth@example.com"
+authelia_smtp_password: "ci-dummy-smtp-password"
+
+# Core secrets — dummy values, rendered to files then discarded
+authelia_jwt_secret: "ci-dummy-jwt-secret-0123456789abcdef"
+authelia_session_secret: "ci-dummy-session-secret-0123456789abcdef"
+authelia_storage_encryption_key: "ci-dummy-encryption-key-01234567"
+
+authelia_oidc_clients:
+  - client_name: "test-client"
+    client_id: "test-client-id"
+    client_secret: "ci-dummy-client-secret-0123456789abcdef"
+    description: "Test OIDC client"
+    redirect_uris:
+      - "https://example.com/callback"
+    scopes:
+      - openid
+      - profile
+      - email
+  - client_name: "admin-client"
+    client_id: "admin-client-id"
+    client_secret: "ci-dummy-admin-client-secret-0123456789abcdef"
+    authorization_policy: "two_factor"
+    redirect_uris:
+      - "https://admin.example.com/oauth/callback"
+    scopes:
+      - openid
+      - profile
+
+authelia_oidc_authorization_policies:
+  admin:
+    default_policy: two_factor
+    rules:
+      - policy: two_factor
+        subject: group:admins
+
+authelia_oidc_claims_policies:
+  default:
+    id_token:
+      - groups
+      - email
+
+authelia_authz_endpoints:
+  forward-auth:
+    implementation: ForwardAuth
+    authn_strategies:
+      - name: CookieSession
+
+authelia_network_definitions:
+  internal:
+    - 192.168.1.0/24
+
+authelia_user_attributes:
+  department:
+    display_name: Department
+    required: false
+
+authelia_compose_extra_envs:
+  TEST_EXTRA_ENV: enabled
+
+authelia_compose_extra_services:
+  whoami:
+    image: traefik/whoami:latest
+
+# real PEM key (to pass config validation) — should _NEVER_ be used outside of testing
+authelia_oidc_jwks_private_key: |
+  -----BEGIN PRIVATE KEY-----
+  MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDbf9NtH2TGlRE4
+  a5/wRyyBRzula7krlxZIF5yV8Ah0cNb73ZkBeK/GyQQNcViC9OrME576yMmak9F0
+  j+mSs814DaUjAb9/XB0npWXBHOHMV4PbeTTSjjr59JPl3dMaHSM/i+5tPEygFCsQ
+  lUdyjnfZ/bPyqIok9dFw4Ug3FS1mFTlXn5ai1651yT2HvdRBfNgmr/4lLaOgt8Qb
+  ET9jKoxVy+/uQd3vrWgzC5iFj5mQBs4F3Ng64rVcss7OMGNRfB9DaSpTLPKY9FaV
+  GwIt7vddQcP/fyXt30Mjz12NAx1TAFdGQaO6N0U5OvNl5pKP4qGKa225ZnhUd22u
+  uYNvbafhAgMBAAECggEABeliEQD0zoQYRkeE6nD4SfR9HIvKZmxcOMRpdZLnVj+A
+  C+pgUMidisJCNQoxPkrSOOr9ghKaLSHR50Np16vbUb3IVruG0eI7AoBFYhdzQj4j
+  un3bRkXlF7xx8CPgXrQJezUEhYg1Sq4iqVwIdoMrEHiV1Xp2tpZDbN0TRVWoLdvT
+  0tVztgqJJDJ+UITlYMGKuUxQWmpFVjsl5xH5pPf6mKNsncmekxXSy+eoD57BJJOi
+  a4Bb4/tv23KBgF9pBN2AIncKqMbeKceecndKNKbtPpxEYZzFtxHFs3gRobYe9hm1
+  VSS8Oy5DRu3f1B0ZwT/W17QIN0Lsaurt9ArLmYdtgwKBgQD9CtJ+AkWwpRwahVLD
+  WJYaHgKuk2OSKibVqCeDRBMNZzupd+LVZ7UAKUF3x6G3GzN7tIENLe3ycJN8M+Wx
+  ukuEQdTjIQlhD+UqjfSsRmiuOFEtD/j1WrOjPNtvJDR495z0XtuoOPVmd+sCFv2t
+  lJ9s1Al7H+nkqN2OgLGX09WSFwKBgQDeEKIWGbZrxVqxLLJrFGyH+qpGMRgVBCpf
+  BHby3DZGjsuET3zo/1cEvOgAAaLkwo5TeABfpJif0c7Fyi1Rm+FH5RMdhi8I+5OZ
+  VPAZGd04FjTfOQkUSNyXnEWKjW8Jr0xjFK5voRf947HwixmQHYooK8Q4wTTZ2YGw
+  qylXUAaoxwKBgEhrBHrTo6Y+WqCsb1dAzxSCajoULHb0YVDcYxKKNPmtBcImcWCp
+  4X8+T2I8W+fPfRh2PEjNUEAGP+9X2vDWZC5huM+X8Ns6dVeMcO2s6OCTdYfz/kgZ
+  wTeCfzp7nhjQpLa7PxoR0wmUYEmk0s0Or+GxfVUjeQjb2yyhYDIXihPZAoGARpqZ
+  PlechXVxGWXxsFQFEdLj8n9Hfd8eLam4vAzCAPsDwCSZvWb53trFFMNwbDVjlSxR
+  SheGI0JM8NwQPqNGJFq0Ei4IpF2Alz7HO+PaTyvYUaTLuzRTVqzr+1pulHC048e+
+  kmVwwFt1xtojHYwW0iDgOX9Mc3tRXb993HHoPB8CgYB4j95ZPQPPzyPZJaIjQG0O
+  8oDNf8cITNDCzqqgc73aKHO/W3wTkAr90nVhoTQwI9b4E3ODX8BVekM4PxCuwUn3
+  hn71Pu6qvUDaydlPhtlISLD4xUP0foCNSAsqiSuvA74z1VAiiOJbMXk1m6uXKfRx
+  OxkkmjrL5ZUZ9rLMjJ+B2A==
+  -----END PRIVATE KEY-----
+
+# Managed lldap secrets
+authelia_ldap_password: "ci-dummy-ldap-password"
+authelia_ldap_jwt_secret: "ci-dummy-lldap-jwt-secret-0123456"
+authelia_ldap_key_seed: "ci-dummy-key-seed-0123456789"
+
+# Leave integration settings at defaults — this fixture focuses on OIDC and usage configuration.
+# Explicitly not set (exercise the defaults):
+#   authelia_storage_backend      -> local (sqlite)
+#   authelia_redis_enabled        -> false
+#   authelia_caddy_managed        -> false
+
+## ---------------------------------- ##
+##     EXPECTED OUTPUT ASSERTIONS     ##
+## ---------------------------------- ##
+authelia_render_assertions:
+  required_files:
+    - compose.yml
+    - .env
+    - data/authelia/configuration.yml
+  required_secrets:
+    - JWT_SECRET
+    - SESSION_SECRET
+    - STORAGE_ENCRYPTION_KEY
+    - SMTP_PASSWORD
+    - LDAP_PASSWORD
+    - LDAP_JWT_SECRET
+  configuration_contains:
+    - "local:"
+    - "base_dn: DC=example,DC=com"
+    - "user: UID=admin,OU=people,DC=example,DC=com"
+    - "identity_providers:"
+    - "clients:"
+    - "authorization_policies:"
+    - "claims_policies:"
+    - "endpoints:"
+    - "authz:"
+    - "192.168.1.0/24"
+    - "department:"
+  configuration_not_contains:
+    - "postgres:"
+    - "redis:"
+  compose_contains:
+    - "  authelia:"
+    - "  ldap:"
+    - "  whoami:"
+    - "AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET_FILE:"
+    - "AUTHELIA_SESSION_SECRET_FILE:"
+    - "AUTHELIA_NOTIFIER_SMTP_PASSWORD_FILE:"
+    - "AUTHELIA_AUTHENTICATION_BACKEND_LDAP_PASSWORD_FILE:"
+    - "AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE:"
+    - "LLDAP_LDAP_BASE_DN:"
+    - "LLDAP_LDAP_USER_PASS_FILE:"
+    - "LLDAP_JWT_SECRET_FILE:"
+    - "LLDAP_KEY_SEED:"
+    - "LLDAP_KEY_FILE:"
+  compose_not_contains:
+    - "  caddy:"
+    - "  postgres:"
+    - "  redis:"
+    - "AUTHELIA_STORAGE_POSTGRES_PASSWORD_FILE:"
+    - "AUTHELIA_SESSION_REDIS_PASSWORD_FILE:"
+    - "POSTGRES_USER:"
+    - "POSTGRES_PASSWORD_FILE:"
+  environment_contains:
+    - "TEST_EXTRA_ENV=enabled"
+  environment_not_contains: []

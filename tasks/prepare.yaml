@@ -14,7 +14,7 @@
       - authelia_session_secret | default('', true) | length > 0
       - authelia_ldap_password | default('', true) | length > 0
       - authelia_storage_encryption_key | default('', true) | length > 0
-      - authelia_oidc_jwks_private_key | default('', true) | length > 0
+      - authelia_oidc_clients | length == 0 or (authelia_oidc_jwks_private_key | default('', true) | length > 0)
       - not authelia_smtp_enabled or (authelia_smtp_password | default('', true) | length > 0)
       - authelia_ldap.implementation | default('') == 'lldap' or (authelia_ldap_base_dn | default('', true) | length > 0)
       - authelia_ldap.implementation | default('') == 'lldap' or (authelia_ldap_user | default('', true) | length > 0)

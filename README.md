@@ -371,4 +371,29 @@ Production deployments should pin these to digests (`image@sha256:...`) — `lat
 
 ## Contributing
 
-Bug reports and PRs welcome. The role stays deliberately opinionated: I don't have the bandwidth to maintain a catch-all solution for every use case. This role aims to be a solid fits-most baseline instead. Please include validation (`ansible-lint`) with changes; a render-check CI job guards the compose/config templates.
+Bug reports and PRs welcome. The role stays deliberately opinionated: I don't have the bandwidth to maintain a catch-all solution for every use case. This role aims to be a solid fits-most baseline instead.
+
+### Render tests
+
+The render harness uses the `minimal` fixture by default. It renders into the workspace-relative `./tmp` directory and runs the Ansible assertions. CI separately validates the generated Compose file and runs Authelia's built-in configuration validator in Docker. Install the role's collection first:
+
+```bash
+ansible-galaxy collection install -r requirements.yaml
+```
+
+Run the default fixture, select another fixture by basename, or exercise the isolated Ansible check-mode path:
+
+```bash
+make lint
+
+make test
+make test-{fixture}
+
+make check
+make check-{fixture}
+
+make validate
+make validate-{fixture}
+```
+
+The local render tests require Ansible only. `make validate` additionally requires Docker or Podman with a Compose provider. All fixtures render to `./tmp`, which is cleared before each run and left behind afterward for inspection. Tests run without privilege escalation and use output owned by the invoking user. CI runs `make test` and `make validate` for every file in `tests/fixtures/`. These checks validate generated configuration only; they do not start the full Authelia stack or test SMTP delivery, LDAP authentication, or database connectivity.

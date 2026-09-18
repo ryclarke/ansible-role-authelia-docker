@@ -29,6 +29,9 @@ authelia_acl_rules: []
 
 # https://www.authelia.com/configuration/identity-providers/openid-connect/clients/
 authelia_oidc_clients: []
+# https://www.authelia.com/configuration/identity-providers/openid-connect/provider/
+authelia_oidc_authorization_policies: {}
+authelia_oidc_claims_policies: {}
 
 # https://www.authelia.com/configuration/miscellaneous/server-endpoints-authz/
 # https://www.authelia.com/reference/guides/proxy-authorization/
