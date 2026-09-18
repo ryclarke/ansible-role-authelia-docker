@@ -1,5 +1,5 @@
 # ansible-role-authelia-docker
-[![CI](https://github.com/ryclarke/ansible-role-authelia-docker/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/ryclarke/ansible-role-authelia-docker/actions/workflows/ci.yaml) [![Ansible Galaxy Import](https://github.com/ryclarke/ansible-role-authelia-docker/actions/workflows/publish.yaml/badge.svg?branch=main)](https://github.com/ryclarke/ansible-role-authelia-docker/actions/workflows/publish.yaml)
+[![CI](https://github.com/ryclarke/ansible-role-authelia-docker/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/ryclarke/ansible-role-authelia-docker/actions/workflows/ci.yaml) [![Ansible Galaxy Import](https://github.com/ryclarke/ansible-role-authelia-docker/actions/workflows/publish.yaml/badge.svg)](https://github.com/ryclarke/ansible-role-authelia-docker/actions/workflows/publish.yaml)
 
 An opinionated Ansible role that deploys a lean, hardened [Authelia](https://www.authelia.com) SSO stack via Docker Compose: **Authelia + lldap** (Lightweight LDAP), with an optional **Caddy** reverse proxy that builds a custom image with the DNS plugins of your choice, and optional **PostgreSQL + Redis** services.
 
