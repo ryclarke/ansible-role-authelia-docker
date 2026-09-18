@@ -1,0 +1,30 @@
+---
+# Managed authenticated Redis session scenario.
+authelia_project_name: test-redis
+authelia_domain: example.com
+authelia_acl_rules:
+  - policy: one_factor
+    domain: '*.{{ authelia_domain }}'
+authelia_smtp_address: submission://smtp.example.com:587
+authelia_smtp_username: auth@example.com
+authelia_smtp_password: ci-dummy-smtp-password
+authelia_jwt_secret: ci-dummy-jwt-secret-0123456789abcdef
+authelia_session_secret: ci-dummy-session-secret-0123456789abcdef
+authelia_storage_encryption_key: ci-dummy-encryption-key-01234567
+authelia_ldap_password: ci-dummy-ldap-password
+authelia_ldap_jwt_secret: ci-dummy-lldap-jwt-secret-0123456
+authelia_ldap_key_seed: ci-dummy-key-seed-0123456789
+authelia_redis_enabled: true
+authelia_redis_managed: true
+authelia_redis_password: ci-dummy-redis-password
+
+authelia_render_assertions:
+  required_files: [compose.yml, .env, data/authelia/configuration.yml, redis.conf]
+  required_directories: [data/redis]
+  required_secrets: [JWT_SECRET, SESSION_SECRET, STORAGE_ENCRYPTION_KEY, SMTP_PASSWORD, LDAP_PASSWORD, LDAP_JWT_SECRET, REDIS_PASSWORD]
+  configuration_contains: ["redis:", "host: authelia_redis"]
+  configuration_not_contains: ["postgres:"]
+  compose_contains: ["  redis:", "AUTHELIA_SESSION_REDIS_PASSWORD_FILE:", REDIS_PASSWORD]
+  compose_not_contains: ["  database:", "  caddy:"]
+  environment_contains: [LLDAP_KEY_SEED]
+  environment_not_contains: []

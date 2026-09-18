@@ -27,6 +27,54 @@ authelia_oidc_clients:
     description: "Test OIDC client"
     redirect_uris:
       - "https://example.com/callback"
+    scopes:
+      - openid
+      - profile
+      - email
+  - client_name: "admin-client"
+    client_id: "admin-client-id"
+    client_secret: "ci-dummy-admin-client-secret-0123456789abcdef"
+    authorization_policy: "two_factor"
+    redirect_uris:
+      - "https://admin.example.com/oauth/callback"
+    scopes:
+      - openid
+      - profile
+
+authelia_oidc_authorization_policies:
+  admin:
+    default_policy: two_factor
+    rules:
+      - policy: two_factor
+        subject: group:admins
+
+authelia_oidc_claims_policies:
+  default:
+    id_token:
+      - groups
+      - email
+
+authelia_authz_endpoints:
+  forward-auth:
+    implementation: ForwardAuth
+    authn_strategies:
+      - name: CookieSession
+
+authelia_network_definitions:
+  internal:
+    - 192.168.1.0/24
+
+authelia_user_attributes:
+  department:
+    display_name: Department
+    required: false
+
+authelia_compose_extra_envs:
+  TEST_EXTRA_ENV: enabled
+
+authelia_compose_extra_services:
+  whoami:
+    image: traefik/whoami:latest
 
 # real PEM key (to pass config validation) — should _NEVER_ be used outside of testing
 authelia_oidc_jwks_private_key: |
@@ -64,13 +112,11 @@ authelia_ldap_password: "ci-dummy-ldap-password"
 authelia_ldap_jwt_secret: "ci-dummy-lldap-jwt-secret-0123456"
 authelia_ldap_key_seed: "ci-dummy-key-seed-0123456789"
 
-# Leave everything else at defaults — that's what this fixture tests.
+# Leave integration settings at defaults — this fixture focuses on OIDC and usage configuration.
 # Explicitly not set (exercise the defaults):
 #   authelia_storage_backend      -> local (sqlite)
 #   authelia_redis_enabled        -> false
 #   authelia_caddy_managed        -> false
-#   authelia_authz_endpoints      -> {}
-#   authelia_oidc_clients         -> []
 
 ## ---------------------------------- ##
 ##     EXPECTED OUTPUT ASSERTIONS     ##
@@ -93,16 +139,19 @@ authelia_render_assertions:
     - "user: UID=admin,OU=people,DC=example,DC=com"
     - "identity_providers:"
     - "clients:"
-  configuration_not_contains:
-    - "endpoints:"
-    - "authz:"
     - "authorization_policies:"
     - "claims_policies:"
+    - "endpoints:"
+    - "authz:"
+    - "192.168.1.0/24"
+    - "department:"
+  configuration_not_contains:
     - "postgres:"
     - "redis:"
   compose_contains:
     - "  authelia:"
     - "  ldap:"
+    - "  whoami:"
     - "AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET_FILE:"
     - "AUTHELIA_SESSION_SECRET_FILE:"
     - "AUTHELIA_NOTIFIER_SMTP_PASSWORD_FILE:"
@@ -121,3 +170,6 @@ authelia_render_assertions:
     - "AUTHELIA_SESSION_REDIS_PASSWORD_FILE:"
     - "POSTGRES_USER:"
     - "POSTGRES_PASSWORD_FILE:"
+  environment_contains:
+    - "TEST_EXTRA_ENV=enabled"
+  environment_not_contains: []

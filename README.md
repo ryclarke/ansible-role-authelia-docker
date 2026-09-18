@@ -384,11 +384,16 @@ ansible-galaxy collection install -r requirements.yaml
 Run the default fixture, select another fixture by basename, or exercise the isolated Ansible check-mode path:
 
 ```bash
+make lint
+
 make test
-make test FIXTURE=minimal
-make check FIXTURE=minimal
-bash tests/run.sh minimal
-bash tests/run.sh minimal --check
+make test-{fixture}
+
+make check
+make check-{fixture}
+
+make validate
+make validate-{fixture}
 ```
 
 The local render tests require Ansible only. `make validate` additionally requires Docker or Podman with a Compose provider. All fixtures render to `./tmp`, which is cleared before each run and left behind afterward for inspection. Tests run without privilege escalation and use output owned by the invoking user. CI runs `make test` and `make validate` for every file in `tests/fixtures/`. These checks validate generated configuration only; they do not start the full Authelia stack or test SMTP delivery, LDAP authentication, or database connectivity.

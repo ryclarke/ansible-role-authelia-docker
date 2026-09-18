@@ -1,0 +1,25 @@
+---
+# Filesystem notifier scenario with SMTP disabled.
+authelia_project_name: test-smtp-disabled
+authelia_domain: example.com
+authelia_acl_rules:
+  - policy: one_factor
+    domain: '*.{{ authelia_domain }}'
+authelia_smtp_enabled: false
+authelia_jwt_secret: ci-dummy-jwt-secret-0123456789abcdef
+authelia_session_secret: ci-dummy-session-secret-0123456789abcdef
+authelia_storage_encryption_key: ci-dummy-encryption-key-01234567
+authelia_ldap_password: ci-dummy-ldap-password
+authelia_ldap_jwt_secret: ci-dummy-lldap-jwt-secret-0123456
+authelia_ldap_key_seed: ci-dummy-key-seed-0123456789
+
+authelia_render_assertions:
+  required_files: [compose.yml, .env, data/authelia/configuration.yml]
+  required_directories: []
+  required_secrets: [JWT_SECRET, SESSION_SECRET, STORAGE_ENCRYPTION_KEY, LDAP_PASSWORD, LDAP_JWT_SECRET]
+  configuration_contains: ["filesystem:", "/config/notification.txt"]
+  configuration_not_contains: ["smtp:", SMTP_PASSWORD]
+  compose_contains: ["  authelia:", "  ldap:"]
+  compose_not_contains: ["  caddy:", "  database:", "  redis:"]
+  environment_contains: []
+  environment_not_contains: []

@@ -73,10 +73,7 @@
 - name: Build Compose environment (.env)
   ansible.builtin.copy:
     dest: "{{ authelia_root }}/.env"
-    content: |
-      {% for key, value in (authelia_compose_env | dictsort) -%}
-      {{ key }}={{ value }}
-      {% endfor %}
+    content: "{{ (authelia_compose_env | dictsort | map('join', '=') | join('\n')) ~ '\n' }}"
     owner: "{{ authelia_render_owner | default('root') }}"
     group: "{{ authelia_render_group | default('root') }}"
     mode: "{{ authelia_render_config_mode | default('0600') }}"
