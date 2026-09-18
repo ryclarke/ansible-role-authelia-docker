@@ -1,5 +1,5 @@
 ---
-name: CI Linting and Tests
+name: CI
 on:
   pull_request:
   push:

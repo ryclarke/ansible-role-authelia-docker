@@ -1,5 +1,5 @@
 ---
-name: Publish to Ansible Galaxy
+name: Ansible Galaxy Import
 on:
   release:
     types:
@@ -15,4 +15,6 @@ jobs:
         run: pipx install ansible
 
       - name: Import versions into Ansible Galaxy
-        run: ansible-galaxy import "{{ github.repository_owner }}" "{{ github.event.repository.name }}" --token "{{ secrets.ANSIBLE_GALAXY_TOKEN }}"
+        env:
+          TOKEN: "${{ secrets.ANSIBLE_GALAXY_TOKEN }}"
+        run: ansible-galaxy import "${{ github.repository_owner }}" "${{ github.event.repository.name }}" --token "${TOKEN}"
