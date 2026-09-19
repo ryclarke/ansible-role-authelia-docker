@@ -2,7 +2,6 @@
 # Minimal deployment profile: authelia + lldap, sqlite storage, no redis, no caddy.
 
 authelia_project_name: test-authelia
-
 authelia_domain: example.com
 
 # at least one ACL rule is required for the rendered configuration to be valid
@@ -32,7 +31,7 @@ authelia_render_assertions:
   required_files:
     - compose.yml
     - .env
-    - data/authelia/configuration.yml
+    - authelia/configuration.yml
   required_secrets:
     - JWT_SECRET
     - SESSION_SECRET

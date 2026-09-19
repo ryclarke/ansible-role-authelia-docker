@@ -55,9 +55,9 @@
         mode: "0750"
       - path: "{{ authelia_root }}/data"
         owner: root
-        group: root
+        group: "{{ authelia_hardening._defaults.group }}"
         mode: "0750"
-      - path: "{{ authelia_root }}/data/authelia"
+      - path: "{{ authelia_root }}/authelia"
         owner: "{{ authelia_hardening.authelia.user }}"
         group: "{{ authelia_hardening.authelia.group }}"
         mode: "0750"
@@ -68,33 +68,42 @@
           'path': authelia_root ~ '/caddy', 'mode': '0750',
           'owner': 'root', 'group': 'root'
         }, {
-          'path': authelia_root ~ '/data/caddy', 'mode': '0750',
+          'path': authelia_root ~ '/data/caddy', 'mode': '0700',
           'owner': authelia_hardening.caddy.user, 'group': authelia_hardening.caddy.group
         }] }}"
   when: authelia_caddy_managed
 
-- name: Add ldap directory (managed only)
+- name: Add ldap data directory (managed only)
   ansible.builtin.set_fact:
     authelia_directories: "{{ authelia_directories + [{
-          'path': authelia_root ~ '/data/lldap', 'mode': '0750',
+          'path': authelia_root ~ '/data/lldap', 'mode': '0700',
           'owner': authelia_hardening.ldap.user, 'group': authelia_hardening.ldap.group
         }] }}"
   when: authelia_ldap_managed
 
-- name: Add postgres directory (managed postgres backend)
+- name: Add authelia data directory (sqlite only)
   ansible.builtin.set_fact:
     authelia_directories: "{{ authelia_directories + [{
-          'path': authelia_root ~ '/data/postgres', 'mode': '0750',
+          'path': authelia_root ~ '/data/authelia', 'mode': '0700',
+          'owner': authelia_hardening.authelia.user, 'group': authelia_hardening.authelia.group
+        }] }}"
+  when:
+    - authelia_storage_backend != 'postgres'
+
+- name: Add postgres data directory (managed only)
+  ansible.builtin.set_fact:
+    authelia_directories: "{{ authelia_directories + [{
+          'path': authelia_root ~ '/data/postgres', 'mode': '0700',
           'owner': authelia_hardening.postgres.user, 'group': authelia_hardening.postgres.group
         }] }}"
   when:
     - authelia_storage_backend == 'postgres'
     - authelia_storage_postgres_managed
 
-- name: Add redis directory (managed only)
+- name: Add redis data directory (managed only)
   ansible.builtin.set_fact:
     authelia_directories: "{{ authelia_directories + [{
-          'path': authelia_root ~ '/data/redis', 'mode': '0750',
+          'path': authelia_root ~ '/data/redis', 'mode': '0700',
           'owner': authelia_hardening.redis.user, 'group': authelia_hardening.redis.group
         }] }}"
   when: authelia_redis_managed
@@ -140,5 +149,5 @@
           (authelia_caddy_env | default({}, true) | dict2items | selectattr('value', 'defined')
             | items2dict) if authelia_ldap_managed and (authelia_caddy_env | default({}, true)) is mapping else {},
           {'LLDAP_KEY_SEED': authelia_ldap_key_seed} if authelia_ldap_managed else {},
-          authelia_compose_extra_envs | default({}, true) if (authelia_compose_extra_envs | default({}, true)) is mapping else {}
+          authelia_extra_compose_envs | default({}, true) if (authelia_extra_compose_envs | default({}, true)) is mapping else {}
         ) }}

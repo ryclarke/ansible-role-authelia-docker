@@ -4,20 +4,20 @@
     project_src: "{{ authelia_root }}"
     state: present
     build: always
-  when: not authelia_first_run | default(true)
   listen: reconcile
 
 - name: Restart authelia
-  ansible.builtin.command: docker compose restart authelia
-  args:
+  ansible.builtin.command:
+    cmd: docker compose restart authelia
     chdir: "{{ authelia_root }}"
   changed_when: false
   when: not authelia_first_run | default(true)
   listen: restart authelia
 
 - name: Reload caddy
-  ansible.builtin.command: docker exec caddy caddy reload --config /etc/caddy/Caddyfile
-  args: {}
+  ansible.builtin.command:
+    cmd: docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
+    chdir: "{{ authelia_root }}"
   changed_when: false
   when: not authelia_first_run | default(true)
   listen: reload caddy

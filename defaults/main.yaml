@@ -65,6 +65,7 @@ authelia_storage_postgres_password: ""
 authelia_redis_password: ""
 
 authelia_caddy_managed: false  # deploy the local caddy service via docker compose
+authelia_caddy_sites_dir: ""
 authelia_caddy_plugins: []
 authelia_caddy_env: {}
 
@@ -131,8 +132,11 @@ authelia_redis:
   port: 6379
 
 # Extra services (and environment variables) to deploy into the Compose project.
-authelia_compose_extra_services: {}
-authelia_compose_extra_envs: {}
+authelia_extra_compose_services: {}
+authelia_extra_compose_envs: {}
+
+# Extra tasks file to import before the deploy stage.
+authelia_extra_tasks: ""
 
 authelia_images_authelia: "docker.io/authelia/authelia:latest"
 authelia_images_caddy_builder: "caddy:2-builder"

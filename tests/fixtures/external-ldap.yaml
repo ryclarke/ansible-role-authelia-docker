@@ -1,5 +1,6 @@
 ---
 # External LDAP integration scenario.
+
 authelia_project_name: test-external-ldap
 authelia_domain: example.com
 authelia_acl_rules:
@@ -24,7 +25,7 @@ authelia_ldap:
   groups_filter: "(&(member={dn})(objectClass=groupOfNames))"
 
 authelia_render_assertions:
-  required_files: [compose.yml, .env, data/authelia/configuration.yml]
+  required_files: [compose.yml, .env, authelia/configuration.yml]
   required_directories: []
   required_secrets: [JWT_SECRET, SESSION_SECRET, STORAGE_ENCRYPTION_KEY, SMTP_PASSWORD, LDAP_PASSWORD]
   configuration_contains:

@@ -1,5 +1,6 @@
 ---
 # Managed PostgreSQL storage scenario.
+
 authelia_project_name: test-postgres
 authelia_domain: example.com
 authelia_acl_rules:

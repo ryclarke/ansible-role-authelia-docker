@@ -318,18 +318,18 @@ authelia_redis:
 
 ### Extending the Compose project
 
-Define custom services under `authelia_compose_extra_services` for the Compose project to be deployed alongside Authelia:
+Define custom services under `authelia_extra_compose_services` for the Compose project to be deployed alongside Authelia:
 ```yaml
-authelia_compose_extra_services:
+authelia_extra_compose_services:
   whoami-exporter:
     image: traefik/whoami:latest
     networks: ["{{ authelia_network_name }}"]
   ...
 ```
 
-Environment variables for the whole project go in `authelia_compose_extra_envs`, rendered into the compose `.env` alongside the managed values:
+Environment variables for the whole project go in `authelia_extra_compose_envs`, rendered into the compose `.env` alongside the managed values:
 ```yaml
-authelia_compose_extra_envs:
+authelia_extra_compose_envs:
   KEY: value
   ...
 ```
@@ -363,8 +363,8 @@ Production deployments should pin these to digests (`image@sha256:...`) — `lat
 | `authelia_user_attributes` | `{}` | Custom attribute definitions surfaced in OIDC claims and ACL rules ([docs](https://www.authelia.com/configuration/definitions/user-attributes/)) |
 | `authelia_authz_endpoints` | `{}` | Authz endpoint definitions for reverse-proxy integration |
 | `authelia_hardening` | see defaults | Per-service container hardening (uids, caps, read-only) |
-| `authelia_compose_extra_services` | `{}` | Extra service definitions merged into the compose services |
-| `authelia_compose_extra_envs` | `{}` | Extra env keys merged into the compose `.env` |
+| `authelia_extra_compose_services` | `{}` | Extra service definitions merged into the compose services |
+| `authelia_extra_compose_envs` | `{}` | Extra env keys merged into the compose `.env` |
 
 > Secrets (`authelia_jwt_secret`, `authelia_ldap_password`, …) are rendered as files under `secrets/` and exposed to containers via compose secret mounts.
 

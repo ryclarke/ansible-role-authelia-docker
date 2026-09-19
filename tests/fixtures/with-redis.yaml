@@ -1,5 +1,6 @@
 ---
 # Managed authenticated Redis session scenario.
+
 authelia_project_name: test-redis
 authelia_domain: example.com
 authelia_acl_rules:

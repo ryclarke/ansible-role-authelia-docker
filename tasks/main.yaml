@@ -2,8 +2,9 @@
 - name: Prepare — validations, directory structure, secrets composition
   ansible.builtin.import_tasks: prepare.yaml
 
-- name: Render — configuration, compose, environment files
-  ansible.builtin.import_tasks: render_files.yaml
+- name: Stage — custom pre-deploy preparation tasks
+  ansible.builtin.include_tasks: "{{ authelia_extra_tasks }}"
+  when: authelia_extra_tasks | default('', true) | length > 0
 
-- name: Operate — stack reconciliation
+- name: Deploy — configuration, compose, environment files
   ansible.builtin.import_tasks: deploy.yaml

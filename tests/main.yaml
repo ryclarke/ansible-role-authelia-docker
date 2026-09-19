@@ -9,10 +9,12 @@
   vars:
     fixture: minimal
     fixture_file: "{{ playbook_dir }}/fixtures/{{ fixture }}.yaml"
+    authelia_skip_validation: true
     authelia_role_path: "{{ playbook_dir | dirname }}"
     authelia_render_owner: "{{ lookup('ansible.builtin.pipe', 'id -un') }}"
     authelia_render_group: "{{ lookup('ansible.builtin.pipe', 'id -gn') }}"
-    authelia_render_config_mode: "0644"
+    authelia_render_mode: "0644"
+    authelia_render_mode_dir: "0755"
   tasks:
     - name: Validate fixture selector
       ansible.builtin.assert:
@@ -34,17 +36,21 @@
     - name: Prepare test environment
       ansible.builtin.import_tasks: "{{ authelia_role_path }}/tasks/prepare.yaml"
 
+    - name: Stage custom pre-deploy tasks
+      ansible.builtin.include_tasks: "{{ authelia_extra_tasks }}"
+      when: authelia_extra_tasks | default('', true) | length > 0
+
     - name: Use current user ownership for disposable render output
       ansible.builtin.set_fact:
         authelia_directories: >-
           {{ authelia_directories | map('combine', {
             'owner': authelia_render_owner,
             'group': authelia_render_group,
-            'mode': '0755'
+            'mode': authelia_render_mode_dir
           }) | list }}
 
     - name: Render files for test
-      ansible.builtin.import_tasks: "{{ authelia_role_path }}/tasks/render_files.yaml"
+      ansible.builtin.import_tasks: "{{ authelia_role_path }}/tasks/deploy.yaml"
 
     - name: Resolve SELinux labels for file secrets
       # respects the container runtime override from the Makefile.
@@ -95,7 +101,7 @@
 
         - name: Read rendered configuration
           ansible.builtin.set_fact:
-            authelia_rendered_configuration: "{{ lookup('ansible.builtin.file', authelia_root ~ '/data/authelia/configuration.yml') }}"
+            authelia_rendered_configuration: "{{ lookup('ansible.builtin.file', authelia_root ~ '/authelia/configuration.yml') }}"
             authelia_rendered_compose: "{{ lookup('ansible.builtin.file', authelia_root ~ '/compose.yml') }}"
             authelia_rendered_environment: "{{ lookup('ansible.builtin.file', authelia_root ~ '/.env') }}"
 

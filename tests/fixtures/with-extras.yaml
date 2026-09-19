@@ -1,8 +1,7 @@
 ---
-# Minimal deployment profile: authelia + lldap, sqlite storage, no redis, no caddy.
+# Extra services profile with OIDC clients, extra compose services and envs, and custom pre/post render hooks.
 
 authelia_project_name: test-authelia
-
 authelia_domain: example.com
 
 # at least one ACL rule is required for the rendered configuration to be valid
@@ -21,19 +20,18 @@ authelia_session_secret: "ci-dummy-session-secret-0123456789abcdef"
 authelia_storage_encryption_key: "ci-dummy-encryption-key-01234567"
 
 authelia_oidc_clients:
-  - client_name: "test-client"
+  - client_name: "Test OIDC client"
     client_id: "test-client-id"
-    client_secret: "ci-dummy-client-secret-0123456789abcdef"
-    description: "Test OIDC client"
+    client_secret: "$pbkdf2-sha512$310000$ZyYBc5jrNvb.n2YAZ.UAiQ$olMHxFUpCnsFVUzr9ZFRnt.zPuSl9vF/mnZlecPnZyEx.k.zNUesdpIB1Z7Q3V99cgVRlM0qDTRXGdVBwdrfpA" # hashed dummy value
     redirect_uris:
       - "https://example.com/callback"
     scopes:
       - openid
       - profile
       - email
-  - client_name: "admin-client"
+  - client_name: "Admin service"
     client_id: "admin-client-id"
-    client_secret: "ci-dummy-admin-client-secret-0123456789abcdef"
+    client_secret: "$pbkdf2-sha512$310000$ZyYBc5jrNvb.n2YAZ.UAiQ$olMHxFUpCnsFVUzr9ZFRnt.zPuSl9vF/mnZlecPnZyEx.k.zNUesdpIB1Z7Q3V99cgVRlM0qDTRXGdVBwdrfpA" # hashed dummy value
     authorization_policy: "two_factor"
     redirect_uris:
       - "https://admin.example.com/oauth/callback"
@@ -69,12 +67,14 @@ authelia_user_attributes:
     display_name: Department
     required: false
 
-authelia_compose_extra_envs:
+authelia_extra_compose_envs:
   TEST_EXTRA_ENV: enabled
 
-authelia_compose_extra_services:
+authelia_extra_compose_services:
   whoami:
     image: traefik/whoami:latest
+
+authelia_extra_tasks: "{{ playbook_dir }}/hooks/test-stage.yaml"
 
 # real PEM key (to pass config validation) — should _NEVER_ be used outside of testing
 authelia_oidc_jwks_private_key: |
@@ -125,7 +125,8 @@ authelia_render_assertions:
   required_files:
     - compose.yml
     - .env
-    - data/authelia/configuration.yml
+    - authelia/configuration.yml
+    - data/custom
   required_secrets:
     - JWT_SECRET
     - SESSION_SECRET

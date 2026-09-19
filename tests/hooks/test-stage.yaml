@@ -1,0 +1,7 @@
+---
+- name: Extend directory list for custom services
+  ansible.builtin.set_fact:
+    authelia_directories: "{{ authelia_directories + [{
+        'path': authelia_root ~ '/data/custom', 'mode': '0750',
+        'owner': 500, 'group': 'root'
+      }] }}"
