@@ -2,14 +2,15 @@
 - name: Reconcile compose stack
   community.docker.docker_compose_v2:
     project_src: "{{ authelia_root }}"
+    remove_orphans: true
     state: present
-    build: always
   listen: reconcile
 
 - name: Restart authelia
-  ansible.builtin.command:
-    cmd: docker compose restart authelia
-    chdir: "{{ authelia_root }}"
+  community.docker.docker_compose_v2:
+    project_src: "{{ authelia_root }}"
+    services: [authelia]
+    state: restarted
   changed_when: false
   when: not authelia_first_run | default(true)
   listen: restart authelia
